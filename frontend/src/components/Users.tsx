@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { UserPlus, Trash2, Shield, User as UserIcon } from 'lucide-react';
+import { UserPlus, Trash2, Shield, User as UserIcon, Users as UsersIcon } from 'lucide-react';
 
 interface Role {
   id: number;
@@ -13,6 +13,7 @@ interface User {
   name: string;
   email: string;
   role_id: number;
+  supervisors?: { id: number; name: string }[];
 }
 
 export default function UsersPage() {
@@ -24,61 +25,55 @@ export default function UsersPage() {
     name: '',
     email: '',
     password: '',
-    role_id: ''
+    role_id: '',
+    supervisor_ids: [] as number[] // Lista de IDs
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
-      const [usersRes, rolesRes] = await Promise.all([
-        api.get('/users/'),
-        api.get('/roles/')
-      ]);
+      const [usersRes, rolesRes] = await Promise.all([api.get('/users/'), api.get('/roles/')]);
       setUsers(usersRes.data);
       setRoles(rolesRes.data);
-    } catch (error) {
-      console.error("Erro ao carregar dados");
-    }
+    } catch (error) { console.error("Erro ao carregar"); }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg({ text: '', type: '' });
-
-    if (!formData.role_id) {
-      setMsg({ text: 'Selecione um cargo.', type: 'error' });
-      return;
-    }
+    if (!formData.role_id) { setMsg({ text: 'Selecione um cargo.', type: 'error' }); return; }
 
     try {
       await api.post('/users/', formData);
       setMsg({ text: 'Usuário criado com sucesso!', type: 'success' });
-      setFormData({ name: '', email: '', password: '', role_id: '' });
+      setFormData({ name: '', email: '', password: '', role_id: '', supervisor_ids: [] });
       loadData();
     } catch (error: any) {
-      const errorDetail = error.response?.data?.detail || 'Erro ao criar';
-      setMsg({ text: errorDetail, type: 'error' });
+      setMsg({ text: error.response?.data?.detail || 'Erro ao criar', type: 'error' });
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm("Tem certeza? O usuário perderá o acesso imediatamente.")) {
-      try {
-        await api.delete(`/users/${id}`);
-        loadData();
-      } catch (error: any) {
-        alert(error.response?.data?.detail || "Erro ao excluir");
-      }
+    if (confirm("Tem certeza?")) {
+      try { await api.delete(`/users/${id}`); loadData(); } 
+      catch (error: any) { alert(error.response?.data?.detail || "Erro ao excluir"); }
     }
   };
 
-  // Helper para achar nome do cargo pelo ID
-  const getRoleName = (id: number) => {
-    const role = roles.find(r => r.id === id);
-    return role ? role.name : 'Sem cargo';
+  const getRoleName = (id: number) => roles.find(r => r.id === id)?.name || 'Sem cargo';
+
+  // Toggle de supervisor no checkbox
+  const toggleSupervisor = (id: number) => {
+      setFormData(prev => {
+          const exists = prev.supervisor_ids.includes(id);
+          return {
+              ...prev,
+              supervisor_ids: exists 
+                ? prev.supervisor_ids.filter(x => x !== id) 
+                : [...prev.supervisor_ids, id]
+          };
+      });
   };
 
   return (
@@ -97,61 +92,51 @@ export default function UsersPage() {
             <form onSubmit={handleRegister} className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-gray-700">Nome</label>
-                <input 
-                  type="text" 
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  required 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               
               <div>
                 <label className="text-sm font-medium text-gray-700">Email</label>
-                <input 
-                  type="email" 
-                  value={formData.email}
-                  onChange={e => setFormData({...formData, email: e.target.value})}
-                  required 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700">Senha Inicial</label>
-                <input 
-                  type="password" 
-                  value={formData.password}
-                  onChange={e => setFormData({...formData, password: e.target.value})}
-                  required 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700">Cargo / Permissão</label>
-                <select 
-                  value={formData.role_id}
-                  onChange={e => setFormData({...formData, role_id: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  required
-                >
+                <label className="text-sm font-medium text-gray-700">Cargo</label>
+                <select value={formData.role_id} onChange={e => setFormData({...formData, role_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white" required>
                   <option value="">Selecione...</option>
-                  {roles.map(role => (
-                    <option key={role.id} value={role.id}>{role.name}</option>
-                  ))}
+                  {roles.map(role => <option key={role.id} value={role.id}>{role.name}</option>)}
                 </select>
               </div>
 
-              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition">
-                Criar Usuário
-              </button>
+              {/* SELEÇÃO DE SUPERVISORES */}
+              <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-2 flex items-center gap-1">
+                      <UsersIcon size={14}/> Quem pode monitorar este usuário?
+                  </label>
+                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
+                      {users.length === 0 ? <p className="text-xs text-gray-400">Nenhum outro usuário cadastrado.</p> : 
+                        users.map(u => (
+                          <label key={u.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer text-sm">
+                              <input 
+                                type="checkbox" 
+                                checked={formData.supervisor_ids.includes(u.id)}
+                                onChange={() => toggleSupervisor(u.id)}
+                                className="w-4 h-4 text-blue-600 rounded"
+                              />
+                              <span className="text-gray-700">{u.name}</span>
+                          </label>
+                      ))}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">Selecione quem terá acesso aos dados deste usuário.</p>
+              </div>
 
-              {msg.text && (
-                <div className={`p-3 text-sm rounded ${msg.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                  {msg.text}
-                </div>
-              )}
+              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition">Criar Usuário</button>
+              {msg.text && <div className={`p-3 text-sm rounded ${msg.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{msg.text}</div>}
             </form>
           </div>
         </div>
@@ -159,10 +144,7 @@ export default function UsersPage() {
         {/* LISTA */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-4 bg-gray-50 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-700">Equipe ({users.length})</h3>
-            </div>
-            
+            <div className="p-4 bg-gray-50 border-b border-gray-100"><h3 className="font-semibold text-gray-700">Equipe ({users.length})</h3></div>
             <div className="divide-y divide-gray-100">
               {users.map(user => (
                 <div key={user.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
@@ -173,27 +155,26 @@ export default function UsersPage() {
                     <div>
                       <p className="font-bold text-gray-800">{user.name}</p>
                       <p className="text-sm text-gray-500">{user.email}</p>
+                      {/* MOSTRAR SUPERVISORES */}
+                      {user.supervisors && user.supervisors.length > 0 && (
+                          <div className="flex gap-1 mt-1 text-[10px] text-gray-400">
+                              Monitorado por: 
+                              {user.supervisors.map(s => (
+                                  <span key={s.id} className="bg-gray-100 px-1 rounded">{s.name}</span>
+                              ))}
+                          </div>
+                      )}
                     </div>
                   </div>
-
                   <div className="flex items-center gap-4">
-                    <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded uppercase">
-                      {getRoleName(user.role_id)}
-                    </span>
-                    <button 
-                      onClick={() => handleDelete(user.id)}
-                      className="text-gray-400 hover:text-red-600 transition"
-                      title="Excluir Usuário"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded uppercase">{getRoleName(user.role_id)}</span>
+                    <button onClick={() => handleDelete(user.id)} className="text-gray-400 hover:text-red-600 transition" title="Excluir Usuário"><Trash2 size={18} /></button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

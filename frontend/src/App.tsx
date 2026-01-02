@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-// Componentes Principais
+// Componentes
 import Login from './components/Login';
 import Layout from './components/Layout';
 import Home from './components/Home';
-import UsersPage from './components/Users';
 
-// Componentes de Clientes
+// Users (NOVOS)
+import UserList from './components/UserList';
+import UserForm from './components/UserForm';
+
+// Customers
 import CustomerList from './components/CustomerList';
 import CustomerForm from './components/CustomerForm';
 
-// Componentes Novos
+// Módulos Extras
 import Settings from './components/Settings';
 import FinancialProfile from './components/FinancialProfile';
 import CRMProfile from './components/CRMProfile';
@@ -19,7 +22,6 @@ import CRMProfile from './components/CRMProfile';
 function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
 
-  // ATUALIZADO: Salva 4 itens
   const handleLoginSuccess = (newToken: string, newRole: string, name: string, email: string) => {
     localStorage.setItem('token', newToken);
     localStorage.setItem('role', newRole);
@@ -45,15 +47,16 @@ function App() {
           <Route element={<Layout onLogout={handleLogout} />}>
             <Route path="/" element={<Home />} />
             
-            {/* Usuários (Admin) */}
-            <Route path="/users" element={<UsersPage />} />
+            {/* ROTAS DE USUÁRIOS (Atualizadas) */}
+            <Route path="/users" element={<UserList />} />
+            <Route path="/users/new" element={<UserForm />} />
+            <Route path="/users/:id" element={<UserForm />} />
 
-            {/* Clientes */}
+            {/* ROTAS DE CLIENTES */}
             <Route path="/customers" element={<CustomerList />} />
             <Route path="/customers/new" element={<CustomerForm />} />
             <Route path="/customers/:id" element={<CustomerForm />} />
 
-            {/* Módulos Novos */}
             <Route path="/settings" element={<Settings />} />
             <Route path="/financial/:id" element={<FinancialProfile />} />
             <Route path="/crm/:id" element={<CRMProfile />} />

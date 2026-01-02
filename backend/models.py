@@ -1,13 +1,20 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from datetime import datetime
-from sqlmodel import SQLModel, Field, Column
+from sqlmodel import SQLModel, Field, Column, Relationship
 from sqlalchemy import JSON
 
+# --- Base ---
 class BaseModel(SQLModel):
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+# --- TABELA DE LIGAÇÃO (SUPERVISÃO) ---
+class UserSupervisor(SQLModel, table=True):
+    user_id: int = Field(foreign_key="user.id", primary_key=True)       # O Vendedor
+    supervisor_id: int = Field(foreign_key="user.id", primary_key=True) # O Supervisor
+
+# --- Tabelas Principais ---
 class Role(BaseModel, table=True):
     name: str
     slug: str = Field(unique=True, index=True)
@@ -20,13 +27,32 @@ class User(BaseModel, table=True):
     password_hash: str
     is_active: bool = Field(default=True)
     role_id: Optional[int] = Field(default=None, foreign_key="role.id")
+    
+    # Relacionamentos de Supervisão
+    # "supervisors": Quem monitora este usuário
+    supervisors: List["User"] = Relationship(
+        back_populates="monitoring",
+        link_model=UserSupervisor,
+        sa_relationship_kwargs={
+            "primaryjoin": "User.id==UserSupervisor.user_id",
+            "secondaryjoin": "User.id==UserSupervisor.supervisor_id"
+        }
+    )
+    
+    # "monitoring": Quem este usuário monitora
+    monitoring: List["User"] = Relationship(
+        back_populates="supervisors",
+        link_model=UserSupervisor,
+        sa_relationship_kwargs={
+            "primaryjoin": "User.id==UserSupervisor.supervisor_id",
+            "secondaryjoin": "User.id==UserSupervisor.user_id"
+        }
+    )
 
 class Customer(BaseModel, table=True):
     name: str = Field(index=True)
     document: str = Field(index=True, unique=True)
     person_type: str
-    
-    # --- MUDANÇA AQUI: Status agora é texto (ativo, inativo, pendente) ---
     status: str = Field(default="ativo") 
     
     salesperson_id: Optional[int] = Field(default=None, foreign_key="user.id") 
@@ -48,3 +74,28 @@ class Customer(BaseModel, table=True):
     complement: Optional[str] = None
 
     created_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
+
+class CustomerNote(BaseModel, table=True):
+    content: str 
+    customer_id: int = Field(foreign_key="customer.id")
+    created_by_id: int = Field(foreign_key="user.id")
+    target_user_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    type: str = Field(default="message") 
+    task_status: str = Field(default="pending")
+    read_at: Optional[datetime] = None       
+    started_at: Optional[datetime] = None    
+    completed_at: Optional[datetime] = None  
+
+class FeedItem(BaseModel, table=True):
+    content: str
+    icon: str = "activity"
+    user_id: int = Field(foreign_key="user.id")
+    related_customer_id: Optional[int] = Field(default=None, foreign_key="customer.id")
+    visibility: str = Field(default="public") 
+
+class Notification(BaseModel, table=True):
+    user_id: int = Field(foreign_key="user.id")
+    content: str
+    is_read: bool = Field(default=False)
+    link: str
+    related_note_id: Optional[int] = Field(default=None, foreign_key="customernote.id")

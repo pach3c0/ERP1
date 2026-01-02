@@ -1,0 +1,49 @@
+Estou desenvolvendo um sistema ERP Agent MVP usando React (Vite/Tailwind) no frontend e FastAPI (Python/SQLModel) no backend, rodando em Docker com PostgreSQL.
+
+Aqui está o contexto técnico e as regras de negócio já implementadas. Use isso como base para as próximas tarefas, NÃO reescreva o que já existe a menos que necessário.
+
+1. Estrutura do Banco de Dados Atual
+
+Role: id, name, slug (admin, manager, sales), permissions (JSON).
+
+User: id, name, email, role_id, password_hash.
+
+Customer: id, name, document (CPF/CNPJ), status (ativo/inativo/pendente), salesperson_id (FK User - Dono da carteira), created_by_id (FK User - Quem cadastrou), person_type (PF/PJ), Endereço completo.
+
+2. Regras de Negócio Críticas (JÁ IMPLEMENTADAS)
+
+Visão de Carteira:
+
+O usuário com role sales (Vendedor) só pode listar/ver clientes onde customer.salesperson_id == user.id.
+
+Admins e Gerentes veem todos.
+
+Criação de Clientes:
+
+Se o usuário for Vendedor, o cliente nasce obrigatoriamente com status = 'pendente' (regra definida via permissão customer_require_approval no banco).
+
+Se não informado, o salesperson_id é o próprio usuário criador.
+
+Permissões Dinâmicas:
+
+Existe uma coluna JSON na tabela Role. Ex: {"customer_change_status": false}.
+
+O Frontend lê isso para bloquear o campo de "Status" (fica cinza/disabled).
+
+O Backend valida isso antes de salvar (UPDATE).
+
+Transferência de Carteira:
+
+Apenas Admins/Gerentes podem alterar o campo salesperson_id de um cliente existente.
+
+3. Frontend (Estilo Bling)
+
+Navegação separada: /customers (Lista) e /customers/new ou /customers/:id (Formulário).
+
+Usa localStorage para guardar token, role, user_name, user_email.
+
+Componentes chave: CustomerList.tsx (Tabela com checkbox), CustomerForm.tsx (Formulário com bloqueios condicionais), Settings.tsx (Gestão de permissões).
+
+4. O que preciso que você faça agora:
+
+(Aqui você digita o que quer que a nova IA faça, exemplo: "Crie o módulo de Produtos", "Faça a tela de Financeiro funcionar de verdade", etc).
