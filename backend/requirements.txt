@@ -4,7 +4,8 @@ sqlmodel
 psycopg2-binary
 pydantic
 passlib
-# FIX: Travando versão antiga do bcrypt para compatibilidade com passlib
 bcrypt==3.2.0
 python-jose[cryptography]
 python-multipart
+# Nova dependência:
+validate-docbr

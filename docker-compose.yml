@@ -13,6 +13,12 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # --- NOVO: Verificação de Saúde ---
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d erp_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # Backend (API)
   backend:
@@ -23,23 +29,27 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db
+      # --- NOVO: Espera o banco estar 100% pronto ---
+      db:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://erp_user:erp_password@db:5432/erp_database
       SECRET_KEY: "sua_chave_secreta_super_segura_aqui"
       ALGORITHM: "HS256"
+      # Configuração para corrigir CORS no backend
+      BACKEND_CORS_ORIGINS: '["http://localhost:5173"]' 
 
-  # --- NOVO SERVIÇO: Frontend ---
+  # Frontend
   frontend:
     build: ./frontend
     container_name: erp_frontend
     volumes:
       - ./frontend:/app
-      - /app/node_modules # Evita conflito de node_modules entre host/container
+      - /app/node_modules
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:8000 # URL que o navegador usará
+      - VITE_API_URL=http://localhost:8000
     depends_on:
       - backend
 
