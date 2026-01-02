@@ -1,0 +1,19 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# --- Node / Frontend ---
+frontend/node_modules/
+frontend/dist/
+frontend/.DS_Store
+
+# --- Docker / Banco de Dados ---
+.docker/
+postgres_data/
+
+# --- Sistema / Mac ---
+.DS_Store
+.vscode/

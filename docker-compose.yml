@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Banco de Dados
+  db:
+    image: postgres:15
+    container_name: erp_db
+    environment:
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: erp_password
+      POSTGRES_DB: erp_database
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Backend (API)
+  backend:
+    build: ./backend
+    container_name: erp_backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://erp_user:erp_password@db:5432/erp_database
+      SECRET_KEY: "sua_chave_secreta_super_segura_aqui"
+      ALGORITHM: "HS256"
+
+  # --- NOVO SERVIÇO: Frontend ---
+  frontend:
+    build: ./frontend
+    container_name: erp_frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Evita conflito de node_modules entre host/container
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000 # URL que o navegador usará
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
