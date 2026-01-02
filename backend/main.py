@@ -384,3 +384,4 @@ def task_action(note_id: int, action: str, session: Session = Depends(get_sessio
     session.add(note)
     session.commit()
     return {"ok": True}
+

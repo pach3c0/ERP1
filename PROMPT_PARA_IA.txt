@@ -1,49 +1,47 @@
-Estou desenvolvendo um sistema ERP Agent MVP usando React (Vite/Tailwind) no frontend e FastAPI (Python/SQLModel) no backend, rodando em Docker com PostgreSQL.
+[CONTEXTO DO PROJETO ATUAL - ERP AGENT MVP]
 
-Aqui está o contexto técnico e as regras de negócio já implementadas. Use isso como base para as próximas tarefas, NÃO reescreva o que já existe a menos que necessário.
+Estou desenvolvendo um sistema ERP/CRM usando React (Vite) e FastAPI (SQLModel/Postgres).
+Abaixo está a documentação técnica do estado atual. Use isso para continuar o desenvolvimento sem quebrar as regras existentes.
 
-1. Estrutura do Banco de Dados Atual
+### 1. Estrutura do Banco de Dados (SQLModel)
 
-Role: id, name, slug (admin, manager, sales), permissions (JSON).
+* **Role:** `id`, `name`, `slug` (admin, manager, sales), `permissions` (JSON).
+* **User:** `id`, `name`, `email`, `role_id`, `password_hash`.
+    * *Relacionamento:* `supervisors` (Muitos-para-Muitos via `UserSupervisor`).
+* **UserSupervisor:** Tabela de ligação (`user_id`, `supervisor_id`).
+* **Customer:** `id`, `name`, `document`, `status` (ativo/inativo/pendente), `salesperson_id` (Dono), `created_by_id`.
+* **CustomerNote (Timeline):** `id`, `content`, `type` (message/task), `task_status` (pending/in_progress/done), `target_user_id` (Destinatário), `read_at`, `started_at`, `completed_at`.
+* **FeedItem:** `id`, `content`, `icon`, `user_id`, `visibility` (public/admin_manager), `related_customer_id`.
+* **Notification:** `id`, `user_id`, `content`, `is_read`, `link`, `related_note_id`.
 
-User: id, name, email, role_id, password_hash.
+### 2. Regras de Negócio Críticas (JÁ IMPLEMENTADAS)
 
-Customer: id, name, document (CPF/CNPJ), status (ativo/inativo/pendente), salesperson_id (FK User - Dono da carteira), created_by_id (FK User - Quem cadastrou), person_type (PF/PJ), Endereço completo.
+1.  **Hierarquia e Supervisão:**
+    * Existe uma Matriz de Supervisão (tabela `UserSupervisor`).
+    * Admin/Gerente vê tudo ou quem monitora.
+    * Vendedores veem apenas sua carteira (salvo se forem supervisores de alguém).
 
-2. Regras de Negócio Críticas (JÁ IMPLEMENTADAS)
+2.  **Workflow de Clientes:**
+    * **Permissão:** Se `role.permissions.customer_require_approval` for True (Vendedores), o cliente nasce com `status='pendente'`.
+    * **Notificação:** Ao criar cliente pendente, o sistema notifica automaticamente os supervisores desse usuário.
+    * **Edição:** Vendedores não podem alterar o Status manualmente (bloqueio no Backend e Frontend).
 
-Visão de Carteira:
+3.  **Timeline e Tarefas (Bitrix Style):**
+    * Notas podem ser Mensagens ou Tarefas.
+    * Tarefas têm ciclo: Play (Start) -> Check (Finish).
+    * Menções (`@usuario`) geram Notificações (`Notification`).
+    * Menção `@todos` joga o item no Feed com visibilidade `public`.
 
-O usuário com role sales (Vendedor) só pode listar/ver clientes onde customer.salesperson_id == user.id.
+4.  **Feed de Atividades:**
+    * **Privacidade:** Ações de rotina (criar cliente, editar) de vendedores têm `visibility='admin_manager'` (outros vendedores não veem).
+    * **Filtros:** O backend suporta filtro por `user_id`, `start_date`, `end_date`.
 
-Admins e Gerentes veem todos.
+### 3. Frontend (React)
+* **UX:** Navegação separada em Lista/Formulário (UserList/UserForm, CustomerList/CustomerForm).
+* **Polling:** O `Layout.tsx` busca notificações a cada 15s.
+* **Components:**
+    * `CustomerForm.tsx`: Lógica complexa de menção (@), bloqueio de campos por permissão e timeline.
+    * `UserForm.tsx`: Gestão de checkboxes para definir supervisores.
 
-Criação de Clientes:
-
-Se o usuário for Vendedor, o cliente nasce obrigatoriamente com status = 'pendente' (regra definida via permissão customer_require_approval no banco).
-
-Se não informado, o salesperson_id é o próprio usuário criador.
-
-Permissões Dinâmicas:
-
-Existe uma coluna JSON na tabela Role. Ex: {"customer_change_status": false}.
-
-O Frontend lê isso para bloquear o campo de "Status" (fica cinza/disabled).
-
-O Backend valida isso antes de salvar (UPDATE).
-
-Transferência de Carteira:
-
-Apenas Admins/Gerentes podem alterar o campo salesperson_id de um cliente existente.
-
-3. Frontend (Estilo Bling)
-
-Navegação separada: /customers (Lista) e /customers/new ou /customers/:id (Formulário).
-
-Usa localStorage para guardar token, role, user_name, user_email.
-
-Componentes chave: CustomerList.tsx (Tabela com checkbox), CustomerForm.tsx (Formulário com bloqueios condicionais), Settings.tsx (Gestão de permissões).
-
-4. O que preciso que você faça agora:
-
-(Aqui você digita o que quer que a nova IA faça, exemplo: "Crie o módulo de Produtos", "Faça a tela de Financeiro funcionar de verdade", etc).
+### 4. Objetivo da Sessão Atual:
+(Descreva aqui o que você quer fazer agora...)

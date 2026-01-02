@@ -1,6 +1,6 @@
 # ERP Agent MVP
 
-Um sistema ERP com funcionalidades de CRM, focado em gestão de parceiros (clientes/fornecedores), controle de acesso granular (RBAC) e gestão de carteira de vendas.
+Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parceiros, controle de acesso granular (RBAC), matriz de supervisão e workflow de tarefas.
 
 ## 🛠 Tech Stack
 
@@ -11,66 +11,67 @@ Um sistema ERP com funcionalidades de CRM, focado em gestão de parceiros (clien
 
 ## 🚀 Como Rodar o Projeto
 
-### Pré-requisitos
-* Docker e Docker Compose instalados.
-
 ### Comandos Principais
 
-1.  **Iniciar o Projeto (Primeira vez ou após alterações no banco):**
+1.  **Iniciar o Projeto:**
     ```bash
-    # Reconstrói as imagens e sobe os containers
     docker-compose up --build
     ```
 
 2.  **Reset Nuclear (Limpar Banco e Recriar Dados):**
-    Use o script utilitário em Python para zerar o banco e criar usuários padrão (Admin e Vendedores).
+    Script utilitário que zera o banco, cria tabelas e popula com dados de teste (Admin, Gerente, Vendedores e Clientes).
     ```bash
     python3 reset_erp.py
     ```
 
 3.  **Acessar a Aplicação:**
     * Frontend: http://localhost:5173
-    * Backend Docs (Swagger): http://localhost:8000/docs
+    * Backend Docs: http://localhost:8000/docs
 
 ## 🔐 Credenciais Padrão (Geradas pelo reset_erp.py)
 
 * **Admin:** `pacheco@rhynoproject.com.br` / `123`
+* **Gerente:** `gerente@erp.com` / `123`
 * **Vendedor 1:** `carlos@vendas.com` / `123`
 * **Vendedor 2:** `ana@vendas.com` / `123`
 
 ## 🧩 Funcionalidades Implementadas
 
-### 1. Autenticação & Permissões (RBAC)
-* Sistema de Login com Token JWT.
-* **Cargos (Roles):** Tabela no banco com coluna JSON `permissions`.
-* **Permissões Granulares:**
-    * `can_change_status`: Permite ativar/inativar clientes.
-    * `customer_require_approval`: Se true, clientes criados nascem com status "Pendente".
+### 1. Governança e Acesso
+* **RBAC Granular:** Coluna JSON `permissions` define regras exatas (ex: `customer_require_approval`).
+* **Matriz de Supervisão:** Tabela `UserSupervisor` (Muitos-para-Muitos) permite que qualquer usuário monitore outro, independente de cargo.
+* **Gestão de Usuários:** Interface "Estilo Bling" (Lista e Formulário separados).
 
-### 2. Gestão de Parceiros (Clientes/Fornecedores)
-* Cadastro unificado (Flag `is_customer` / `is_supplier`).
-* **Busca de CEP:** Integração automática com ViaCEP.
-* **Validação:** CPF/CNPJ válidos obrigatórios.
-* **Fluxo de Status:** Ativo, Inativo, Pendente (com cores visuais na lista).
+### 2. CRM e Gestão de Clientes
+* **Carteira:** Vendedores veem apenas seus clientes. Supervisores veem os de seus monitorados.
+* **Workflow de Aprovação:** Clientes criados por vendedores nascem com status `Pendente` (Amarelo) e exigem aprovação do Admin/Gerente.
+* **Timeline Inteligente (Estilo Bitrix):**
+    * Mensagens e Tarefas integradas.
+    * Ciclo de vida da Tarefa: Criar -> Iniciar (Play) -> Finalizar (Check).
+    * Auditoria de tempos (Visualizado em, Iniciado em, Concluído em).
+    * Menções (`@usuario` ou `@todos`).
 
-### 3. CRM & Carteira de Vendas
-* **Propriedade:** Cada cliente tem um `created_by` (imutável) e um `salesperson_id` (dono atual da carteira).
-* **Visão de Vendedor:** Vendedores veem apenas sua própria carteira.
-* **Transferência:** Admins/Gerentes podem transferir clientes entre vendedores.
-
-### 4. Interface (UI)
-* **Layout:** Sidebar dinâmica (mostra nome/cargo) e navegação estilo "Bling".
-* **Listagem:** Tabela com ações rápidas (3 pontinhos), checkboxes e filtros.
-* **Configurações:** Tela para Admins alterarem permissões de cargos visualmente.
+### 3. Comunicação e Notificações
+* **Feed de Atividades:**
+    * **Privacidade:** Atividades de vendedores são visíveis apenas para Gerentes/Admins (`visibility='admin_manager'`).
+    * **Filtros:** Por Usuário e Período (Data).
+    * **Postagem:** Mural de recados na Dashboard.
+* **Central de Notificações (Sininho):**
+    * Polling automático a cada 15s.
+    * Alertas para menções, atribuição de tarefas e novos cadastros pendentes.
+    * Marcação de leitura automática ao clicar.
 
 ## 📂 Estrutura de Pastas
 
 * `backend/`
     * `main.py`: Rotas da API e regras de negócio.
-    * `models.py`: Tabelas do Banco (SQLModel).
-    * `schemas.py`: Contratos de dados (Pydantic).
-    * `security.py`: Lógica de Hash de senha e JWT.
-    * `database.py`: Conexão com Postgres.
+    * `models.py`: Tabelas (User, Customer, Role, CustomerNote, FeedItem, Notification, UserSupervisor).
+    * `schemas.py`: Contratos Pydantic.
+    * `security.py`: Auth JWT.
 * `frontend/`
-    * `src/components/`: Telas e componentes (CustomerList, CustomerForm, Layout, etc).
-    * `src/App.tsx`: Configuração de Rotas.
+    * `src/components/`:
+        * `CustomerForm.tsx`: Timeline, Menções, Bloqueios visuais.
+        * `UserForm.tsx`: Matriz de Supervisão.
+        * `Home.tsx`: Feed com filtros e Dashboard.
+        * `Layout.tsx`: Sidebar e Notificações.
+    * `src/App.tsx`: Roteamento.
