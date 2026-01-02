@@ -1,19 +1,16 @@
-# --- Python ---
+# Python / Backend
 __pycache__/
 *.py[cod]
-*$py.class
-venv/
-.env
+backend/venv/
+backend/.env
 
-# --- Node / Frontend ---
+# Node / Frontend
 frontend/node_modules/
 frontend/dist/
-frontend/.DS_Store
+frontend/.env
 
-# --- Docker / Banco de Dados ---
-.docker/
-postgres_data/
-
-# --- Sistema / Mac ---
+# Docker / System
 .DS_Store
+.idea/
 .vscode/
+erp_database/
