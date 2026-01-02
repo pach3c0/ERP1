@@ -24,11 +24,11 @@ export default function CustomerList() {
   const userRole = localStorage.getItem('role') || 'visitante';
   const canDelete = ['admin', 'manager'].includes(userRole);
 
-  useEffect(() => { loadCustomers(); }, []);
-
   const loadCustomers = async () => {
-    try { const { data } = await api.get('/customers/'); setCustomers(data); } catch (e) { console.error(e); }
+    try { const { data } = await api.get('/customers/'); setCustomers(data); } catch { console.error('Error loading customers'); }
   };
+
+  useEffect(() => { loadCustomers(); }, []);
 
   const handleDeleteSelected = async () => {
     if (!confirm(`Excluir ${selectedIds.length} clientes selecionados?`)) return;

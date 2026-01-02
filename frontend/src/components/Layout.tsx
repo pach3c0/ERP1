@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { 
-  LayoutDashboard, Users, Package, Wrench, LogOut, FolderPlus, 
+  LayoutDashboard, Users, LogOut, FolderPlus, 
   ChevronDown, ChevronRight, Shield, UserCircle, UserCog, Settings, Bell 
 } from 'lucide-react';
 
@@ -10,7 +10,7 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
-interface Notification {
+interface NotificationItem {
   id: number;
   content: string;
   is_read: boolean;
@@ -29,36 +29,75 @@ export default function Layout({ onLogout }: LayoutProps) {
   const userRole = localStorage.getItem('role') || 'visitante';
   const userName = localStorage.getItem('user_name') || 'Usuário';
   const userEmail = localStorage.getItem('user_email') || '...';
+  const token = localStorage.getItem('token');
   
   const roleNames: Record<string, string> = { 'admin': 'Super Admin', 'manager': 'Gerente', 'sales': 'Vendedor', 'user': 'Usuário' };
   const displayRole = roleNames[userRole] || userRole;
 
-  // --- LÓGICA DE NOTIFICAÇÕES ---
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  // --- LÓGICA DE NOTIFICAÇÕES (WEBSOCKET) ---
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const ws = useRef<WebSocket | null>(null);
 
-  // Busca notificações a cada 15 segundos
   useEffect(() => {
+    // 1. Busca notificações antigas
     const fetchNotifs = async () => {
         try { 
             const { data } = await api.get('/notifications/'); 
             setNotifications(data); 
-        } catch(e) { console.error("Erro ao buscar notificações"); }
+        } catch(e) { console.error(e); }
     };
-    
-    // Busca imediata e depois intervalo
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 15000);
-    return () => clearInterval(interval);
-  }, []);
 
-  const handleReadNotification = async (notif: Notification) => {
-      try {
-          await api.post(`/notifications/${notif.id}/read`);
-          setNotifications(prev => prev.filter(n => n.id !== notif.id)); // Remove da lista visualmente
-          setShowNotifMenu(false);
-          navigate(notif.link); // Redireciona
-      } catch (e) { console.error(e); }
+    // 2. Conecta WebSocket
+    if (token) {
+        const connectWs = () => {
+            if (ws.current) ws.current.close();
+
+            const wsUrl = `ws://localhost:8000/ws?token=${token}`;
+            ws.current = new WebSocket(wsUrl);
+
+            ws.current.onopen = () => console.log("🟢 WS Conectado no Frontend");
+            
+            ws.current.onmessage = (event: MessageEvent) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'notification') {
+                    console.log("📨 Notificação:", data.content);
+                    const newNotif: NotificationItem = {
+                        id: Date.now(),
+                        content: data.content,
+                        link: data.link,
+                        is_read: false,
+                        created_at: new Date().toISOString()
+                    };
+                    setNotifications((prev: NotificationItem[]) => [newNotif, ...prev]);
+                    
+                    // Avisa outros componentes (Chat)
+                    const customEvent = new CustomEvent('erp-notification', { detail: data });
+                    window.dispatchEvent(customEvent);
+                }
+            };
+
+            ws.current.onclose = () => {
+                console.log("🔴 WS Desconectado. Tentando reconectar...");
+                setTimeout(() => connectWs(), 3000);
+            };
+        };
+        connectWs();
+    }
+
+    return () => {
+        if (ws.current) ws.current.close();
+    };
+  }, [token]);
+
+  const handleReadNotification = async (notif: NotificationItem) => {
+      if (notif.id < 1000000000000) { 
+          try { await api.post(`/notifications/${notif.id}/read`); } catch {}
+      }
+      setNotifications((prev: NotificationItem[]) => prev.filter((n: NotificationItem) => n.content !== notif.content));
+      setShowNotifMenu(false);
+      navigate(notif.link);
   };
 
   return (
@@ -66,14 +105,11 @@ export default function Layout({ onLogout }: LayoutProps) {
       
       {/* SIDEBAR */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 z-20">
-        
-        {/* Header Sidebar */}
         <div className="h-auto py-6 flex flex-col justify-center px-6 border-b border-gray-100 bg-gray-50/50">
           <div className="flex items-center gap-2 mb-3">
              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-sm font-bold shadow-sm">E</div>
              <span className="font-bold text-gray-800 text-lg tracking-tight">ERP Agent</span>
           </div>
-          
           <div className="mt-2">
              <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
                 {userRole === 'admin' ? <Shield size={12} className="text-blue-600"/> : <UserCircle size={12}/>}
@@ -84,7 +120,6 @@ export default function Layout({ onLogout }: LayoutProps) {
           </div>
         </div>
 
-        {/* Menu Nav */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <Link to="/" className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
             <LayoutDashboard size={20} /> Dashboard
@@ -99,7 +134,7 @@ export default function Layout({ onLogout }: LayoutProps) {
             {isCadastrosOpen && (
               <div className="mt-1 space-y-1">
                 <Link to="/customers" className={`flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm transition-colors ${location.pathname.includes('/customers') ? 'text-blue-700 font-semibold bg-blue-50' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
-                  <Users size={18} /> Parceiros (Cli/Forn)
+                  <Users size={18} /> Parceiros
                 </Link>
                 {userRole === 'admin' && (
                   <Link to="/users" className={`flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm transition-colors ${location.pathname === '/users' ? 'text-blue-700 font-semibold bg-blue-50' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
@@ -127,23 +162,18 @@ export default function Layout({ onLogout }: LayoutProps) {
 
       {/* ÁREA PRINCIPAL */}
       <main className="flex-1 flex flex-col bg-gray-50 min-w-0">
-        
-        {/* HEADER SUPERIOR (Sininho) */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-8 shadow-sm z-10">
-            
-            {/* Componente de Notificação */}
             <div className="relative">
                 <button 
                     onClick={() => setShowNotifMenu(!showNotifMenu)} 
-                    className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition relative"
+                    className={`p-2 rounded-full transition relative ${notifications.length > 0 ? 'text-blue-600 bg-blue-50' : 'text-gray-500 hover:bg-gray-100'}`}
                 >
                     <Bell size={20} />
                     {notifications.length > 0 && (
-                        <span className="absolute top-1.5 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                        <span className="absolute top-1.5 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
                     )}
                 </button>
 
-                {/* Dropdown */}
                 {showNotifMenu && (
                     <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowNotifMenu(false)}></div>
@@ -170,7 +200,6 @@ export default function Layout({ onLogout }: LayoutProps) {
             </div>
         </header>
 
-        {/* CONTEÚDO DA PÁGINA */}
         <div className="flex-1 overflow-auto p-8">
             <Outlet />
         </div>

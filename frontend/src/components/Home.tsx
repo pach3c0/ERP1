@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { Users, Building2, User, Activity, Edit, Trash2, MessageSquare, Plus, AtSign, RefreshCw, Send, Filter, X } from 'lucide-react';
+import { Users, Building2, User, Activity, Trash2, MessageSquare, Plus, AtSign, RefreshCw, Send, Filter, X } from 'lucide-react';
 
 interface FeedItem {
   id: number;

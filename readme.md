@@ -1,6 +1,6 @@
 # ERP Agent MVP
 
-Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parceiros, controle de acesso granular (RBAC), matriz de supervisão e workflow de tarefas.
+Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parceiros, controle de acesso granular (RBAC), matriz de supervisão e workflow de tarefas em tempo real.
 
 ## 🛠 Tech Stack
 
@@ -8,6 +8,7 @@ Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parcei
 * **Backend:** Python (FastAPI), SQLModel (SQLAlchemy + Pydantic), Jose (JWT Auth).
 * **Banco de Dados:** PostgreSQL.
 * **Infraestrutura:** Docker & Docker Compose.
+* **Real-Time:** WebSockets (FastAPI + React).
 
 ## 🚀 Como Rodar o Projeto
 
@@ -35,43 +36,44 @@ Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parcei
 * **Vendedor 1:** `carlos@vendas.com` / `123`
 * **Vendedor 2:** `ana@vendas.com` / `123`
 
-## 🧩 Funcionalidades Implementadas
+## 🧩 Funcionalidades Implementadas (O que já temos)
 
-### 1. Governança e Acesso
-* **RBAC Granular:** Coluna JSON `permissions` define regras exatas (ex: `customer_require_approval`).
-* **Matriz de Supervisão:** Tabela `UserSupervisor` (Muitos-para-Muitos) permite que qualquer usuário monitore outro, independente de cargo.
-* **Gestão de Usuários:** Interface "Estilo Bling" (Lista e Formulário separados).
+### 1. Arquitetura e Segurança
+* **Backend Modular:** Refatorado em roteadores (`routers/`) para escalabilidade.
+* **Auditoria Técnica (Logs):** Tabela `AuditLog` registra todas as alterações críticas.
+* **RBAC Granular:** Controle de permissões via JSON no banco.
 
 ### 2. CRM e Gestão de Clientes
-* **Carteira:** Vendedores veem apenas seus clientes. Supervisores veem os de seus monitorados.
-* **Workflow de Aprovação:** Clientes criados por vendedores nascem com status `Pendente` (Amarelo) e exigem aprovação do Admin/Gerente.
-* **Timeline Inteligente (Estilo Bitrix):**
-    * Mensagens e Tarefas integradas.
-    * Ciclo de vida da Tarefa: Criar -> Iniciar (Play) -> Finalizar (Check).
-    * Auditoria de tempos (Visualizado em, Iniciado em, Concluído em).
-    * Menções (`@usuario` ou `@todos`).
+* **Carteira:** Vendedores veem apenas seus clientes.
+* **Workflow de Aprovação:** Clientes criados por vendedores nascem com status `Pendente`.
+* **Timeline Inteligente (Estilo Bitrix):** Mensagens, Tarefas com ciclo de vida (Play/Check) e Menções.
 
-### 3. Comunicação e Notificações
-* **Feed de Atividades:**
-    * **Privacidade:** Atividades de vendedores são visíveis apenas para Gerentes/Admins (`visibility='admin_manager'`).
-    * **Filtros:** Por Usuário e Período (Data).
-    * **Postagem:** Mural de recados na Dashboard.
-* **Central de Notificações (Sininho):**
-    * Polling automático a cada 15s.
-    * Alertas para menções, atribuição de tarefas e novos cadastros pendentes.
-    * Marcação de leitura automática ao clicar.
+### 3. Comunicação e Real-Time
+* **Feed de Atividades:** Com filtros e controle de privacidade.
+* **WebSockets:** Notificações instantâneas (Sininho) e Chat sem refresh.
+
+## 🗺️ Roadmap de Evolução (Próximos Passos)
+
+### 📦 Fase 2: Gestão de Produtos & Serviços (Atual)
+* [ ] **Cadastro de Produtos:** Tabela `Product` (SKU, Preço, Estoque).
+* [ ] **Cadastro de Serviços:** Tabela `Service` (Valor Hora/Fixo).
+* [ ] **Tabelas de Preço:** Diferenciação por perfil de cliente.
+
+### 💰 Fase 3: Motor de Vendas
+* [ ] **Oportunidades (Deals):** Funil de vendas vinculado ao cliente.
+* [ ] **Kanban Visual:** Arrastar e soltar cards entre fases.
+* [ ] **Gerador de Propostas:** Criar orçamentos em PDF/Link.
+
+### 👁️ Fase 4: UX Avançada
+* [ ] **Shadowing:** Supervisor logar como Vendedor para suporte.
+* [ ] **Agenda:** Visualização de tarefas em calendário.
+* [ ] **Busca Global:** Barra de pesquisa universal (Spotlight).
 
 ## 📂 Estrutura de Pastas
 
 * `backend/`
-    * `main.py`: Rotas da API e regras de negócio.
-    * `models.py`: Tabelas (User, Customer, Role, CustomerNote, FeedItem, Notification, UserSupervisor).
-    * `schemas.py`: Contratos Pydantic.
-    * `security.py`: Auth JWT.
+    * `main.py`: Entry point limpo.
+    * `connection_manager.py`: Gerenciador de WebSockets.
+    * `routers/`: Auth, Users, Customers, Feed, WebSockets.
 * `frontend/`
-    * `src/components/`:
-        * `CustomerForm.tsx`: Timeline, Menções, Bloqueios visuais.
-        * `UserForm.tsx`: Matriz de Supervisão.
-        * `Home.tsx`: Feed com filtros e Dashboard.
-        * `Layout.tsx`: Sidebar e Notificações.
-    * `src/App.tsx`: Roteamento.
+    * `src/components/`: CustomerForm (Chat/Timeline), Layout (Sininho), UserForm (Supervisão).

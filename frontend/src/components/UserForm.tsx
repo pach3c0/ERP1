@@ -22,11 +22,6 @@ export default function UserForm() {
     supervisor_ids: [] as number[]
   });
 
-  useEffect(() => {
-    loadMetaData();
-    if (isEditing) loadUser();
-  }, [id]);
-
   const loadMetaData = async () => {
     try {
         const [rolesRes, usersRes] = await Promise.all([api.get('/roles/'), api.get('/users/')]);
@@ -53,6 +48,11 @@ export default function UserForm() {
         }
     } catch (e) { navigate('/users'); }
   };
+
+  useEffect(() => {
+    loadMetaData();
+    if (isEditing) loadUser();
+  }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

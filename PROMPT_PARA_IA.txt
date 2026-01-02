@@ -1,47 +1,33 @@
-[CONTEXTO DO PROJETO ATUAL - ERP AGENT MVP]
+[CONTEXTO TÉCNICO - ERP AGENT MVP - FASE 2]
 
-Estou desenvolvendo um sistema ERP/CRM usando React (Vite) e FastAPI (SQLModel/Postgres).
-Abaixo está a documentação técnica do estado atual. Use isso para continuar o desenvolvimento sem quebrar as regras existentes.
+O sistema foi recentemente **refatorado** para uma arquitetura modular e conta com funcionalidades avançadas de CRM e Auditoria.
 
-### 1. Estrutura do Banco de Dados (SQLModel)
+### 1. Arquitetura do Backend (FastAPI Modular)
+O `main.py` agora é limpo. A lógica está dividida em `backend/routers/`:
+* `auth.py`: Login/Registro.
+* `users.py`: CRUD de usuários e permissões.
+* `customers.py`: Clientes, Timeline e Lógica de Negócio.
+* `feed.py`: Feed de notícias e Notificações.
+* **`websockets.py`**: Endpoint `/ws` para Real-Time.
+* **`connection_manager.py`**: Gerencia conexões ativas de socket.
 
-* **Role:** `id`, `name`, `slug` (admin, manager, sales), `permissions` (JSON).
-* **User:** `id`, `name`, `email`, `role_id`, `password_hash`.
-    * *Relacionamento:* `supervisors` (Muitos-para-Muitos via `UserSupervisor`).
-* **UserSupervisor:** Tabela de ligação (`user_id`, `supervisor_id`).
-* **Customer:** `id`, `name`, `document`, `status` (ativo/inativo/pendente), `salesperson_id` (Dono), `created_by_id`.
-* **CustomerNote (Timeline):** `id`, `content`, `type` (message/task), `task_status` (pending/in_progress/done), `target_user_id` (Destinatário), `read_at`, `started_at`, `completed_at`.
-* **FeedItem:** `id`, `content`, `icon`, `user_id`, `visibility` (public/admin_manager), `related_customer_id`.
-* **Notification:** `id`, `user_id`, `content`, `is_read`, `link`, `related_note_id`.
+### 2. Banco de Dados (Novas Tabelas)
+* **UserSupervisor:** Tabela de ligação (Many-to-Many) para hierarquia flexível.
+* **AuditLog:** Registra alterações (JSON `changes`, `action`, `user_id`).
+* **CustomerNote:** Suporta tipos `message` ou `task` (com status e timestamps).
+* **FeedItem:** Possui campo `visibility` ('public', 'admin_manager').
 
-### 2. Regras de Negócio Críticas (JÁ IMPLEMENTADAS)
+### 3. Estado Atual do Real-Time (WebSockets)
+* **Backend:** O `connection_manager` e a rota `/ws` estão implementados e logando conexões no terminal ("WS Conectado").
+* **Frontend (`Layout.tsx`):** Possui lógica de conexão e reconexão automática.
+* **Frontend (`CustomerForm.tsx`):** Possui `window.addEventListener('erp-notification')` para atualizar o chat.
+* **🔴 PROBLEMA ATUAL (DEBUG NECESSÁRIO):**
+    * O sistema de notificações via WebSocket está implementado, mas o usuário relata que **o sininho e as mensagens só aparecem ao recarregar a página (F5)**.
+    * O evento real-time parece não estar disparando a re-renderização do React ou a conexão está caindo silenciosamente.
+    * O código do `Layout.tsx` foi revisado recentemente para corrigir erros de sintaxe (TypeScript), mas o comportamento persiste.
 
-1.  **Hierarquia e Supervisão:**
-    * Existe uma Matriz de Supervisão (tabela `UserSupervisor`).
-    * Admin/Gerente vê tudo ou quem monitora.
-    * Vendedores veem apenas sua carteira (salvo se forem supervisores de alguém).
+### 4. Próximos Passos (Prioridade):
+1.  **Debuggar o WebSocket:** Descobrir por que a notificação não atualiza o estado do React instantaneamente (verificar `useEffect` ou despachos de evento).
+2.  **Iniciar Fase 2 (Produtos):** Após corrigir o socket, iniciar o módulo de Cadastro de Produtos (`Product` e `Service`).
 
-2.  **Workflow de Clientes:**
-    * **Permissão:** Se `role.permissions.customer_require_approval` for True (Vendedores), o cliente nasce com `status='pendente'`.
-    * **Notificação:** Ao criar cliente pendente, o sistema notifica automaticamente os supervisores desse usuário.
-    * **Edição:** Vendedores não podem alterar o Status manualmente (bloqueio no Backend e Frontend).
-
-3.  **Timeline e Tarefas (Bitrix Style):**
-    * Notas podem ser Mensagens ou Tarefas.
-    * Tarefas têm ciclo: Play (Start) -> Check (Finish).
-    * Menções (`@usuario`) geram Notificações (`Notification`).
-    * Menção `@todos` joga o item no Feed com visibilidade `public`.
-
-4.  **Feed de Atividades:**
-    * **Privacidade:** Ações de rotina (criar cliente, editar) de vendedores têm `visibility='admin_manager'` (outros vendedores não veem).
-    * **Filtros:** O backend suporta filtro por `user_id`, `start_date`, `end_date`.
-
-### 3. Frontend (React)
-* **UX:** Navegação separada em Lista/Formulário (UserList/UserForm, CustomerList/CustomerForm).
-* **Polling:** O `Layout.tsx` busca notificações a cada 15s.
-* **Components:**
-    * `CustomerForm.tsx`: Lógica complexa de menção (@), bloqueio de campos por permissão e timeline.
-    * `UserForm.tsx`: Gestão de checkboxes para definir supervisores.
-
-### 4. Objetivo da Sessão Atual:
-(Descreva aqui o que você quer fazer agora...)
+Use este contexto para corrigir o bug do Real-Time e prosseguir.

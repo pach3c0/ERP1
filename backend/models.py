@@ -11,8 +11,8 @@ class BaseModel(SQLModel):
 
 # --- TABELA DE LIGAÇÃO (SUPERVISÃO) ---
 class UserSupervisor(SQLModel, table=True):
-    user_id: int = Field(foreign_key="user.id", primary_key=True)       # O Vendedor
-    supervisor_id: int = Field(foreign_key="user.id", primary_key=True) # O Supervisor
+    user_id: int = Field(foreign_key="user.id", primary_key=True)
+    supervisor_id: int = Field(foreign_key="user.id", primary_key=True)
 
 # --- Tabelas Principais ---
 class Role(BaseModel, table=True):
@@ -28,8 +28,6 @@ class User(BaseModel, table=True):
     is_active: bool = Field(default=True)
     role_id: Optional[int] = Field(default=None, foreign_key="role.id")
     
-    # Relacionamentos de Supervisão
-    # "supervisors": Quem monitora este usuário
     supervisors: List["User"] = Relationship(
         back_populates="monitoring",
         link_model=UserSupervisor,
@@ -39,7 +37,6 @@ class User(BaseModel, table=True):
         }
     )
     
-    # "monitoring": Quem este usuário monitora
     monitoring: List["User"] = Relationship(
         back_populates="supervisors",
         link_model=UserSupervisor,
@@ -54,11 +51,9 @@ class Customer(BaseModel, table=True):
     document: str = Field(index=True, unique=True)
     person_type: str
     status: str = Field(default="ativo") 
-    
     salesperson_id: Optional[int] = Field(default=None, foreign_key="user.id") 
     is_customer: bool = Field(default=True)
     is_supplier: bool = Field(default=False)
-
     rg: Optional[str] = None
     issuing_organ: Optional[str] = None
     ie: Optional[str] = None
@@ -72,9 +67,9 @@ class Customer(BaseModel, table=True):
     address_line: Optional[str] = None
     number: Optional[str] = None
     complement: Optional[str] = None
-
     created_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
 
+# --- TIMELINE E FEED ---
 class CustomerNote(BaseModel, table=True):
     content: str 
     customer_id: int = Field(foreign_key="customer.id")
@@ -99,3 +94,14 @@ class Notification(BaseModel, table=True):
     is_read: bool = Field(default=False)
     link: str
     related_note_id: Optional[int] = Field(default=None, foreign_key="customernote.id")
+
+# --- NOVO: AUDITORIA TÉCNICA ---
+class AuditLog(BaseModel, table=True):
+    table_name: str # Ex: 'customer'
+    record_id: int  # Ex: 15
+    action: str     # CREATE, UPDATE, DELETE
+    user_id: int = Field(foreign_key="user.id") # Quem fez
+    
+    # Guarda o que mudou em formato JSON
+    # Ex: {"status": "inativo"}
+    changes: Dict = Field(default={}, sa_column=Column(JSON))

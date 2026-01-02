@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { UserPlus, Trash2, Shield, User as UserIcon, Users as UsersIcon } from 'lucide-react';
+import { UserPlus, Trash2, Users as UsersIcon } from 'lucide-react';
 
 interface Role {
   id: number;
@@ -29,8 +29,6 @@ export default function UsersPage() {
     supervisor_ids: [] as number[] // Lista de IDs
   });
 
-  useEffect(() => { loadData(); }, []);
-
   const loadData = async () => {
     try {
       const [usersRes, rolesRes] = await Promise.all([api.get('/users/'), api.get('/roles/')]);
@@ -38,6 +36,8 @@ export default function UsersPage() {
       setRoles(rolesRes.data);
     } catch (error) { console.error("Erro ao carregar"); }
   };
+
+  useEffect(() => { loadData(); }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();

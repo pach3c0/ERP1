@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { Plus, Search, Trash2, Edit, User, Shield, Users as UsersIcon } from 'lucide-react';
+import { Plus, Search, Trash2, Edit } from 'lucide-react';
 
 interface Role { name: string; slug: string; }
 interface UserData {
@@ -15,10 +15,7 @@ interface UserData {
 export default function UserList() {
   const navigate = useNavigate();
   const [users, setUsers] = useState<UserData[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]); // Para mapear nomes
   const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
@@ -32,13 +29,15 @@ export default function UserList() {
       // Enriquece o usuário com o nome do cargo
       const enrichedUsers = usersRes.data.map((u: any) => ({
           ...u,
-          role_name: rolesMap.get(u.role_id)?.name || 'Sem Cargo',
-          role_slug: rolesMap.get(u.role_id)?.slug || ''
+          role_name: (rolesMap.get(u.role_id) as Role)?.name || 'Sem Cargo',
+          role_slug: (rolesMap.get(u.role_id) as Role)?.slug || ''
       }));
       
       setUsers(enrichedUsers);
     } catch (error) { console.error("Erro ao carregar"); }
   };
+
+  useEffect(() => { loadData(); }, []);
 
   const handleDelete = async (id: number) => {
     if (confirm("Tem certeza? O usuário perderá o acesso.")) {
