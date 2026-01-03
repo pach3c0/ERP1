@@ -25,7 +25,7 @@ export default function Layout({ onLogout }: LayoutProps) {
   const [isCadastrosOpen, setIsCadastrosOpen] = useState(true);
   const isCadastroActive = ['/customers', '/products', '/services', '/users'].includes(location.pathname);
 
-  // Dados do Usuário
+  // --- DADOS DO USUÁRIO ---
   const userRole = localStorage.getItem('role') || 'visitante';
   const userName = localStorage.getItem('user_name') || 'Usuário';
   const userEmail = localStorage.getItem('user_email') || '...';
@@ -34,67 +34,111 @@ export default function Layout({ onLogout }: LayoutProps) {
   const roleNames: Record<string, string> = { 'admin': 'Super Admin', 'manager': 'Gerente', 'sales': 'Vendedor', 'user': 'Usuário' };
   const displayRole = roleNames[userRole] || userRole;
 
-  // --- LÓGICA DE NOTIFICAÇÕES (WEBSOCKET) ---
+  // --- LÓGICA DE NOTIFICAÇÕES (WEBSOCKET ROBUSTO) ---
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+  
+  // Referência para manter a conexão WebSocket persistente entre renderizações
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // 1. Busca notificações antigas
+    // 1. Busca notificações antigas (Histórico via API REST)
     const fetchNotifs = async () => {
         try { 
             const { data } = await api.get('/notifications/'); 
             setNotifications(data); 
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            console.error("Erro ao buscar notificações antigas:", e); 
+        }
     };
     fetchNotifs();
 
-    // 2. Conecta WebSocket
+    // 2. Conecta WebSocket para Tempo Real
     if (token) {
         const connectWs = () => {
+            // Evita criar múltiplas conexões se já existir uma aberta
+            if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+                console.log("🔵 WS: Conexão já existe e está ativa.");
+                return;
+            }
+            
+            // Fecha conexão anterior se estiver em estado inconsistente
             if (ws.current) ws.current.close();
 
             const wsUrl = `ws://localhost:8000/ws?token=${token}`;
+            console.log("🔵 WS: Iniciando conexão em", wsUrl);
+            
             ws.current = new WebSocket(wsUrl);
 
-            ws.current.onopen = () => console.log("🟢 WS Conectado no Frontend");
+            ws.current.onopen = () => {
+                console.log("🟢 WS: Conexão Estabelecida com Sucesso!");
+            };
             
             ws.current.onmessage = (event: MessageEvent) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'notification') {
-                    console.log("📨 Notificação:", data.content);
-                    const newNotif: NotificationItem = {
-                        id: Date.now(),
-                        content: data.content,
-                        link: data.link,
-                        is_read: false,
-                        created_at: new Date().toISOString()
-                    };
-                    setNotifications((prev: NotificationItem[]) => [newNotif, ...prev]);
+                // Log "fofoqueiro" para vermos o que chega do backend
+                console.log("📨 WS Recebeu Dados:", event.data);
+                
+                try {
+                    const data = JSON.parse(event.data);
                     
-                    // Avisa outros componentes (Chat)
-                    const customEvent = new CustomEvent('erp-notification', { detail: data });
-                    window.dispatchEvent(customEvent);
+                    if (data.type === 'notification') {
+                        // Cria objeto de notificação para a UI
+                        const newNotif: NotificationItem = {
+                            id: Date.now(), // ID temporário para o React renderizar imediatamente
+                            content: data.content,
+                            link: data.link,
+                            is_read: false,
+                            created_at: new Date().toISOString()
+                        };
+                        
+                        // Atualiza estado do Sininho
+                        setNotifications((prev) => [newNotif, ...prev]);
+                        
+                        // IMPORTANTE: Dispara evento global para outros componentes (ex: Chat)
+                        // Isso permite que o CustomerForm.tsx saiba que chegou mensagem nova
+                        console.log("📣 WS: Disparando evento global 'erp-notification'");
+                        const customEvent = new CustomEvent('erp-notification', { detail: data });
+                        window.dispatchEvent(customEvent);
+                    }
+                } catch (err) {
+                    console.error("❌ WS: Erro ao processar mensagem JSON", err);
                 }
             };
 
-            ws.current.onclose = () => {
-                console.log("🔴 WS Desconectado. Tentando reconectar...");
+            ws.current.onerror = (error) => {
+                console.error("❌ WS Erro na conexão:", error);
+            };
+
+            ws.current.onclose = (e) => {
+                // Lógica de Reconexão Automática (Heartbeat)
+                console.log(`🔴 WS Desconectado (Código: ${e.code}). Tentando reconectar em 3s...`);
                 setTimeout(() => connectWs(), 3000);
             };
         };
+        
+        // Inicia a conexão
         connectWs();
     }
 
+    // Cleanup: Fecha a conexão ao desmontar o componente (logout/sair da app)
     return () => {
-        if (ws.current) ws.current.close();
+        if (ws.current) {
+            console.log("Saindo do Layout... Fechando WS.");
+            ws.current.close();
+            ws.current = null;
+        }
     };
   }, [token]);
 
+  // Marca notificação como lida ao clicar
   const handleReadNotification = async (notif: NotificationItem) => {
+      // Se for ID temporário (timestamp), não tenta marcar no backend pois não existe lá ainda com esse ID
+      // IDs reais do banco são pequenos (inteiros), timestamps são enormes.
       if (notif.id < 1000000000000) { 
           try { await api.post(`/notifications/${notif.id}/read`); } catch {}
       }
+      
+      // Remove da lista visual
       setNotifications((prev: NotificationItem[]) => prev.filter((n: NotificationItem) => n.content !== notif.content));
       setShowNotifMenu(false);
       navigate(notif.link);

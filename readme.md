@@ -5,22 +5,24 @@ Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parcei
 ## 🛠 Tech Stack
 
 * **Frontend:** React (Vite), Tailwind CSS, Lucide React (Ícones), Axios.
-* **Backend:** Python (FastAPI), SQLModel (SQLAlchemy + Pydantic), Jose (JWT Auth).
+* **Backend:** Python (FastAPI), SQLModel (SQLAlchemy + Pydantic).
+* **Auth & Segurança:** Jose (JWT), Passlib (PBKDF2 SHA256).
+* **Bibliotecas Chave:** `websockets` (Real-time), `validate-docbr` (CPF/CNPJ).
 * **Banco de Dados:** PostgreSQL.
 * **Infraestrutura:** Docker & Docker Compose.
-* **Real-Time:** WebSockets (FastAPI + React).
 
 ## 🚀 Como Rodar o Projeto
 
 ### Comandos Principais
 
-1.  **Iniciar o Projeto:**
+1.  **Iniciar o Projeto (Rebuildar se houver mudanças em dependências):**
     ```bash
     docker-compose up --build
     ```
 
 2.  **Reset Nuclear (Limpar Banco e Recriar Dados):**
     Script utilitário que zera o banco, cria tabelas e popula com dados de teste (Admin, Gerente, Vendedores e Clientes).
+    *Útil caso tenhas problemas de login ou dados inconsistentes.*
     ```bash
     python3 reset_erp.py
     ```
@@ -36,44 +38,47 @@ Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parcei
 * **Vendedor 1:** `carlos@vendas.com` / `123`
 * **Vendedor 2:** `ana@vendas.com` / `123`
 
-## 🧩 Funcionalidades Implementadas (O que já temos)
+## 🧩 Funcionalidades Implementadas (Status Atual)
 
 ### 1. Arquitetura e Segurança
-* **Backend Modular:** Refatorado em roteadores (`routers/`) para escalabilidade.
-* **Auditoria Técnica (Logs):** Tabela `AuditLog` registra todas as alterações críticas.
+* **Backend Modular:** Lógica dividida em roteadores (`auth`, `users`, `customers`, `feed`, `websockets`).
+* **Auditoria Técnica:** Logs de alterações críticas e sistema de login robusto (compatível com Docker).
 * **RBAC Granular:** Controle de permissões via JSON no banco.
 
 ### 2. CRM e Gestão de Clientes
-* **Carteira:** Vendedores veem apenas seus clientes.
-* **Workflow de Aprovação:** Clientes criados por vendedores nascem com status `Pendente`.
-* **Timeline Inteligente (Estilo Bitrix):** Mensagens, Tarefas com ciclo de vida (Play/Check) e Menções.
+* **Carteira:** Vendedores veem apenas seus clientes (ou hierarquia).
+* **Workflow:** Clientes pendentes vs. Ativos.
+* **Timeline Inteligente:** Mensagens e Tarefas (estilo Bitrix) com histórico completo.
 
-### 3. Comunicação e Real-Time
-* **Feed de Atividades:** Com filtros e controle de privacidade.
-* **WebSockets:** Notificações instantâneas (Sininho) e Chat sem refresh.
+### 3. Comunicação e Real-Time (Estável)
+* **WebSockets Robustos:** Sistema de notificações ("Sininho") e chat atualizam sem recarregar a página (F5).
+* **Reconexão Automática:** O Frontend deteta queda de conexão e reconecta sozinho.
+* **Logs de Diagnóstico:** O Backend informa exatamente quem está online e se a mensagem foi entregue.
 
-## 🗺️ Roadmap de Evolução (Próximos Passos)
+## 🗺️ Roadmap de Evolução
 
-### 📦 Fase 2: Gestão de Produtos & Serviços (Atual)
-* [ ] **Cadastro de Produtos:** Tabela `Product` (SKU, Preço, Estoque).
-* [ ] **Cadastro de Serviços:** Tabela `Service` (Valor Hora/Fixo).
+### ✅ Concluído Recentemente (Fase de Estabilização)
+* [x] **Debug WebSocket:** Correção de erro 403 (Token Expirado) e implementação de Heartbeat.
+* [x] **Dependências:** Adição de `validate-docbr` e `uvicorn[standard]` para suporte a sockets.
+* [x] **Login:** Migração para `pbkdf2_sha256` resolvendo incompatibilidade do `bcrypt` no Docker.
+
+### 📦 Fase 2: Gestão de Produtos & Serviços (Próximo Passo)
+* [ ] **Modelagem:** Criar tabelas `Product` e `Service`.
+* [ ] **Backend:** Criar rotas de CRUD para catálogo.
+* [ ] **Frontend:** Criar formulário moderno ("Single Page Scroll") para cadastro de itens.
 * [ ] **Tabelas de Preço:** Diferenciação por perfil de cliente.
 
-### 💰 Fase 3: Motor de Vendas
-* [ ] **Oportunidades (Deals):** Funil de vendas vinculado ao cliente.
-* [ ] **Kanban Visual:** Arrastar e soltar cards entre fases.
-* [ ] **Gerador de Propostas:** Criar orçamentos em PDF/Link.
+### 💰 Fase 3: Motor de Vendas (Futuro)
+* [ ] **Oportunidades (Deals):** Funil de vendas.
+* [ ] **Kanban Visual:** Arrastar e soltar cards.
+* [ ] **Gerador de Propostas:** PDF/Link.
 
-### 👁️ Fase 4: UX Avançada
-* [ ] **Shadowing:** Supervisor logar como Vendedor para suporte.
-* [ ] **Agenda:** Visualização de tarefas em calendário.
-* [ ] **Busca Global:** Barra de pesquisa universal (Spotlight).
-
-## 📂 Estrutura de Pastas
+## 📂 Estrutura de Pastas Chave
 
 * `backend/`
-    * `main.py`: Entry point limpo.
-    * `connection_manager.py`: Gerenciador de WebSockets.
-    * `routers/`: Auth, Users, Customers, Feed, WebSockets.
+    * `main.py`: Configuração inicial e resiliência de conexão com BD.
+    * `connection_manager.py`: Gerenciador de conexões ativas (Sockets).
+    * `routers/websockets.py`: Endpoint de real-time com validação de token.
 * `frontend/`
-    * `src/components/`: CustomerForm (Chat/Timeline), Layout (Sininho), UserForm (Supervisão).
+    * `src/components/Layout.tsx`: Lógica global de notificações e conexão WS persistente.
+    * `src/components/CustomerForm.tsx`: Formulário de clientes com Chat integrado.

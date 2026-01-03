@@ -1,11 +1,10 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlmodel
 psycopg2-binary
-pydantic
-passlib
-bcrypt==3.2.0
+passlib[bcrypt]
 python-jose[cryptography]
 python-multipart
-# Nova dependência:
+requests
+websockets
 validate-docbr

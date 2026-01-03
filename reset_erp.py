@@ -43,14 +43,14 @@ TEAM_USERS = [
 CUSTOMERS_DATA = [
     {
         "name": "Padaria do Carlos (Cliente)",
-        "document": "12345678901",
+        "document": "11144477735",
         "person_type": "PF",
         "email": "padaria@carlos.com",
         "owner_email": "carlos@vendas.com" # Vai para o Carlos
     },
     {
         "name": "Construtora da Ana (Cliente)",
-        "document": "98765432000199",
+        "document": "11222333000181",
         "person_type": "PJ",
         "email": "contato@ana.com",
         "owner_email": "ana@vendas.com" # Vai para a Ana
