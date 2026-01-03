@@ -1,3 +1,6 @@
+Aqui está o seu `README.md` atualizado, com uma nova seção específica para o **Fluxo de Versionamento**, ensinando como subir as atualizações para o Git/GitHub de forma organizada.
+
+```markdown
 # ERP Agent MVP
 
 Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parceiros, controle de acesso granular (RBAC), matriz de supervisão e workflow de tarefas em tempo real.
@@ -21,8 +24,6 @@ Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parcei
     ```
 
 2.  **Reset Nuclear (Limpar Banco e Recriar Dados):**
-    Script utilitário que zera o banco, cria tabelas e popula com dados de teste (Admin, Gerente, Vendedores e Clientes).
-    *Útil caso tenhas problemas de login ou dados inconsistentes.*
     ```bash
     python3 reset_erp.py
     ```
@@ -30,6 +31,22 @@ Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parcei
 3.  **Acessar a Aplicação:**
     * Frontend: http://localhost:5173
     * Backend Docs: http://localhost:8000/docs
+
+## 🆙 Como Atualizar Versão no Git (GitHub)
+
+Sempre que terminar uma funcionalidade ou correção, utilize os comandos abaixo para subir seu código:
+
+
+# Adiciona todas as modificações (Backend modular, Auditoria, WebSockets e Documentação)
+git add .
+
+# Registra a versão com uma mensagem clara sobre o estado atual
+git commit -m "feat: refatoração modular, auditoria técnica e infraestrutura websocket"
+
+# Envia para o repositório remoto no GitHub
+git push
+
+
 
 ## 🔐 Credenciais Padrão (Geradas pelo reset_erp.py)
 
@@ -41,44 +58,54 @@ Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parcei
 ## 🧩 Funcionalidades Implementadas (Status Atual)
 
 ### 1. Arquitetura e Segurança
+
 * **Backend Modular:** Lógica dividida em roteadores (`auth`, `users`, `customers`, `feed`, `websockets`).
-* **Auditoria Técnica:** Logs de alterações críticas e sistema de login robusto (compatível com Docker).
+* **Auditoria Técnica:** Logs de alterações críticas e sistema de login robusto.
 * **RBAC Granular:** Controle de permissões via JSON no banco.
 
 ### 2. CRM e Gestão de Clientes
+
 * **Carteira:** Vendedores veem apenas seus clientes (ou hierarquia).
 * **Workflow:** Clientes pendentes vs. Ativos.
-* **Timeline Inteligente:** Mensagens e Tarefas (estilo Bitrix) com histórico completo.
+* **Timeline Inteligente:** Mensagens e Tarefas com histórico completo.
 
-### 3. Comunicação e Real-Time (Estável)
-* **WebSockets Robustos:** Sistema de notificações ("Sininho") e chat atualizam sem recarregar a página (F5).
-* **Reconexão Automática:** O Frontend deteta queda de conexão e reconecta sozinho.
-* **Logs de Diagnóstico:** O Backend informa exatamente quem está online e se a mensagem foi entregue.
+### 3. Comunicação e Real-Time (Estabilizada ✅)
+
+* **WebSockets Robustos:** Sistema de notificações ("Sininho") e chat atualizam sem recarregar a página.
+* **Resiliência:** Implementado Heartbeat e Reconexão Automática no `Layout.tsx`.
 
 ## 🗺️ Roadmap de Evolução
 
-### ✅ Concluído Recentemente (Fase de Estabilização)
-* [x] **Debug WebSocket:** Correção de erro 403 (Token Expirado) e implementação de Heartbeat.
-* [x] **Dependências:** Adição de `validate-docbr` e `uvicorn[standard]` para suporte a sockets.
-* [x] **Login:** Migração para `pbkdf2_sha256` resolvendo incompatibilidade do `bcrypt` no Docker.
+### ✅ Concluído Recentemente
 
-### 📦 Fase 2: Gestão de Produtos & Serviços (Próximo Passo)
-* [ ] **Modelagem:** Criar tabelas `Product` e `Service`.
-* [ ] **Backend:** Criar rotas de CRUD para catálogo.
+* [x] **Estabilização do WebSocket:** Resolvido o problema de delay/F5 nas notificações.
+* [x] **Login Docker:** Migração para `pbkdf2_sha256` concluída com sucesso.
+
+### 📦 Fase 2: Gestão de Produtos & Serviços (EM FOCO 🎯)
+
+* [ ] **Modelagem:** Criar tabelas `Product` e `Service` (SQLModel/Pydantic).
+* [ ] **Backend:** Criar rotas de CRUD para catálogo em `backend/routers/products.py`.
 * [ ] **Frontend:** Criar formulário moderno ("Single Page Scroll") para cadastro de itens.
 * [ ] **Tabelas de Preço:** Diferenciação por perfil de cliente.
 
 ### 💰 Fase 3: Motor de Vendas (Futuro)
+
 * [ ] **Oportunidades (Deals):** Funil de vendas.
 * [ ] **Kanban Visual:** Arrastar e soltar cards.
-* [ ] **Gerador de Propostas:** PDF/Link.
 
 ## 📂 Estrutura de Pastas Chave
 
 * `backend/`
-    * `main.py`: Configuração inicial e resiliência de conexão com BD.
-    * `connection_manager.py`: Gerenciador de conexões ativas (Sockets).
-    * `routers/websockets.py`: Endpoint de real-time com validação de token.
+* `main.py`: Configuração inicial.
+* `connection_manager.py`: Gerenciador de conexões Sockets.
+* `routers/`: Módulos da API.
+
+
 * `frontend/`
-    * `src/components/Layout.tsx`: Lógica global de notificações e conexão WS persistente.
-    * `src/components/CustomerForm.tsx`: Formulário de clientes com Chat integrado.
+* `src/components/Layout.tsx`: Hub global de notificações.
+
+
+
+```
+
+```

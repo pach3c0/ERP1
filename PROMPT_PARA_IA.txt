@@ -1,33 +1,31 @@
 [CONTEXTO TÉCNICO - ERP AGENT MVP - FASE 2]
 
-O sistema foi recentemente **refatorado** para uma arquitetura modular e conta com funcionalidades avançadas de CRM e Auditoria.
+O sistema concluiu a fase de estabilização do Real-Time e agora inicia a expansão para módulos de inventário.
 
 ### 1. Arquitetura do Backend (FastAPI Modular)
-O `main.py` agora é limpo. A lógica está dividida em `backend/routers/`:
-* `auth.py`: Login/Registro.
-* `users.py`: CRUD de usuários e permissões.
-* `customers.py`: Clientes, Timeline e Lógica de Negócio.
-* `feed.py`: Feed de notícias e Notificações.
-* **`websockets.py`**: Endpoint `/ws` para Real-Time.
-* **`connection_manager.py`**: Gerencia conexões ativas de socket.
+O sistema utiliza SQLModel (Pydantic + SQLAlchemy) com a seguinte estrutura de routers:
+* `auth.py`: Gestão de tokens JWT e segurança (PBKDF2 SHA256).
+* `users.py`: CRUD de usuários, permissões RBAC e hierarquia (UserSupervisor).
+* `customers.py`: Gestão de clientes e Timeline (CustomerNote - suporta 'message' e 'task').
+* `feed.py`: Notificações globais e FeedItem com controle de visibilidade ('public', 'admin_manager').
+* `websockets.py` & `connection_manager.py`: Sistema de real-time com Heartbeat e logs de conexão.
 
-### 2. Banco de Dados (Novas Tabelas)
-* **UserSupervisor:** Tabela de ligação (Many-to-Many) para hierarquia flexível.
-* **AuditLog:** Registra alterações (JSON `changes`, `action`, `user_id`).
-* **CustomerNote:** Suporta tipos `message` ou `task` (com status e timestamps).
-* **FeedItem:** Possui campo `visibility` ('public', 'admin_manager').
+### 2. Estado do Banco de Dados e Modelos
+* **AuditLog:** Tabela que registra todas as alterações críticas (JSON `changes`, `action`, `user_id`).
+* **Hierarquia:** Matriz de supervisão Many-to-Many funcional.
+* **Resiliência:** O `main.py` possui lógica de retry para conexão com o PostgreSQL no Docker.
 
-### 3. Estado Atual do Real-Time (WebSockets)
-* **Backend:** O `connection_manager` e a rota `/ws` estão implementados e logando conexões no terminal ("WS Conectado").
-* **Frontend (`Layout.tsx`):** Possui lógica de conexão e reconexão automática.
-* **Frontend (`CustomerForm.tsx`):** Possui `window.addEventListener('erp-notification')` para atualizar o chat.
-* **🔴 PROBLEMA ATUAL (DEBUG NECESSÁRIO):**
-    * O sistema de notificações via WebSocket está implementado, mas o usuário relata que **o sininho e as mensagens só aparecem ao recarregar a página (F5)**.
-    * O evento real-time parece não estar disparando a re-renderização do React ou a conexão está caindo silenciosamente.
-    * O código do `Layout.tsx` foi revisado recentemente para corrigir erros de sintaxe (TypeScript), mas o comportamento persiste.
+### 3. Estado Atual do Real-Time (Estabilizado)
+* O problema de "necessidade de F5" foi resolvido.
+* O `Layout.tsx` mantém a conexão global e despacha eventos 'erp-notification'.
+* O sistema de notificações ("Sininho") reflete mudanças instantâneas no banco.
 
-### 4. Próximos Passos (Prioridade):
-1.  **Debuggar o WebSocket:** Descobrir por que a notificação não atualiza o estado do React instantaneamente (verificar `useEffect` ou despachos de evento).
-2.  **Iniciar Fase 2 (Produtos):** Após corrigir o socket, iniciar o módulo de Cadastro de Produtos (`Product` e `Service`).
+### 4. PRÓXIMO PASSO (PRIORIDADE): Módulo de Produtos e Serviços
+Estamos iniciando a Fase 2. A IA deve focar em:
+1. **Modelagem:** Criar `Product` e `Service` via SQLModel. 
+   - Campos esperados: nome, descrição, preço_base, custo, categoria, status (ativo/inativo).
+2. **Backend:** Criar `backend/routers/products.py` seguindo o padrão de dependências de autenticação e RBAC já existente.
+3. **Frontend:** Desenvolver a interface de listagem e o formulário "Single Page Scroll".
+4. **Integração:** Garantir que ações em produtos gerem registros no `AuditLog`.
 
-Use este contexto para corrigir o bug do Real-Time e prosseguir.
+Instrução: Mantenha o padrão de código limpo, utilize Pydantic para validação e siga a estrutura modular de pastas. Não altere a lógica de WebSockets a menos que solicitado.
