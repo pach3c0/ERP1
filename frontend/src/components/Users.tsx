@@ -34,7 +34,7 @@ export default function UsersPage() {
       const [usersRes, rolesRes] = await Promise.all([api.get('/users/'), api.get('/roles/')]);
       setUsers(usersRes.data);
       setRoles(rolesRes.data);
-    } catch (error) { console.error("Erro ao carregar"); }
+    } catch (error) { console.error("Erro ao carregar:", error); }
   };
 
   useEffect(() => { loadData(); }, []);
@@ -49,15 +49,16 @@ export default function UsersPage() {
       setMsg({ text: 'Usuário criado com sucesso!', type: 'success' });
       setFormData({ name: '', email: '', password: '', role_id: '', supervisor_ids: [] });
       loadData();
-    } catch (error: any) {
-      setMsg({ text: error.response?.data?.detail || 'Erro ao criar', type: 'error' });
+    } catch (error) {
+      const err = error as {response?: {data?: {detail?: string}}};
+      setMsg({ text: err.response?.data?.detail || 'Erro ao criar', type: 'error' });
     }
   };
 
   const handleDelete = async (id: number) => {
     if (confirm("Tem certeza?")) {
       try { await api.delete(`/users/${id}`); loadData(); } 
-      catch (error: any) { alert(error.response?.data?.detail || "Erro ao excluir"); }
+      catch (error) { const err = error as {response?: {data?: {detail?: string}}}; alert(err.response?.data?.detail || "Erro ao excluir"); }
     }
   };
 

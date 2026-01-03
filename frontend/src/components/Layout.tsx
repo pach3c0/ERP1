@@ -135,7 +135,7 @@ export default function Layout({ onLogout }: LayoutProps) {
       // Se for ID temporário (timestamp), não tenta marcar no backend pois não existe lá ainda com esse ID
       // IDs reais do banco são pequenos (inteiros), timestamps são enormes.
       if (notif.id < 1000000000000) { 
-          try { await api.post(`/notifications/${notif.id}/read`); } catch {}
+          try { await api.post(`/notifications/${notif.id}/read`); } catch (error) { console.error('Erro ao marcar notificação como lida:', error); }
       }
       
       // Remove da lista visual

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '../api';
 import { Users, Building2, User, Activity, Trash2, MessageSquare, Plus, AtSign, RefreshCw, Send, Filter, X } from 'lucide-react';
 
@@ -31,36 +31,36 @@ export default function Home() {
   const userRole = localStorage.getItem('role') || 'visitante';
   const isSales = userRole === 'sales';
 
-  useEffect(() => {
-    loadData();
-    loadUsers();
-  }, []);
-
-  useEffect(() => {
-      loadFeed();
-  }, [filterUser, startDate, endDate]);
-
-  const loadData = async () => {
-    try {
-        const { data } = await api.get('/dashboard/stats');
-        setStats(data);
-        loadFeed();
-    } catch (e) { console.error(e); } 
-    finally { setLoading(false); }
-  };
-
-  const loadUsers = async () => {
-      try { const { data } = await api.get('/users/'); setUsers(data); } catch(e){}
-  };
-
-  const loadFeed = async () => {
+  const loadFeed = useCallback(async () => {
       let query = '/feed/?';
       if (filterUser) query += `user_id=${filterUser}&`;
       if (startDate) query += `start_date=${startDate}&`;
       if (endDate) query += `end_date=${endDate}&`;
       
-      try { const { data } = await api.get(query); setFeed(data); } catch(e){}
-  };
+      try { const { data } = await api.get(query); setFeed(data); } catch (error) { console.error('Erro ao carregar feed:', error); }
+  }, [filterUser, startDate, endDate]);
+
+  const loadData = useCallback(async () => {
+    try {
+        const { data } = await api.get('/dashboard/stats');
+        setStats(data);
+        loadFeed();
+    } catch (error) { console.error('Erro ao carregar dados:', error); } 
+    finally { setLoading(false); }
+  }, [loadFeed]);
+
+  const loadUsers = useCallback(async () => {
+      try { const { data } = await api.get('/users/'); setUsers(data); } catch (error) { console.error('Erro ao carregar usuários:', error); }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+    loadUsers();
+  }, [loadData, loadUsers]);
+
+  useEffect(() => {
+      loadFeed();
+  }, [loadFeed]);
 
   const handlePost = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -69,7 +69,7 @@ export default function Home() {
           await api.post('/feed/', { content: newPost });
           setNewPost('');
           loadFeed();
-      } catch(e) { alert("Erro ao postar."); }
+      } catch (error) { console.error('Erro ao postar:', error); alert("Erro ao postar."); }
   };
 
   const clearFilters = () => {

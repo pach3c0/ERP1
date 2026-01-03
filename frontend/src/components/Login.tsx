@@ -30,7 +30,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       // Passa tudo para o App.tsx salvar
       onLoginSuccess(access_token, role || 'visitante', name || 'Usuário', userEmail || '');
 
-    } catch (err) {
+    } catch (error) {
+      console.error('Erro no login:', error);
       setError('Login falhou. Verifique suas credenciais.');
     } finally {
       setLoading(false);

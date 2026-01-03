@@ -47,19 +47,33 @@ class User(BaseModel, table=True):
     )
 
 class Customer(BaseModel, table=True):
+    # Identificação Básica
     name: str = Field(index=True)
+    fantasy_name: Optional[str] = None  # [NOVO] Nome Fantasia
     document: str = Field(index=True, unique=True)
     person_type: str
     status: str = Field(default="ativo") 
+    
+    # Perfil
     salesperson_id: Optional[int] = Field(default=None, foreign_key="user.id") 
     is_customer: bool = Field(default=True)
     is_supplier: bool = Field(default=False)
+    
+    # Dados Fiscais
     rg: Optional[str] = None
     issuing_organ: Optional[str] = None
     ie: Optional[str] = None
+    municipal_reg: Optional[str] = None # [NOVO] Inscrição Municipal
+    
+    # Contatos e Web
     email: Optional[str] = None
+    email_nfe: Optional[str] = None     # [NOVO] Email para envio de notas
     phone: Optional[str] = None
+    cellphone: Optional[str] = None     # [NOVO] Celular / WhatsApp
+    website: Optional[str] = None       # [NOVO] Site / Rede Social
     contact_name: Optional[str] = None
+    
+    # Endereço
     cep: Optional[str] = None
     state: Optional[str] = None
     city: Optional[str] = None
@@ -67,6 +81,11 @@ class Customer(BaseModel, table=True):
     address_line: Optional[str] = None
     number: Optional[str] = None
     complement: Optional[str] = None
+    
+    # Financeiro e Observações
+    credit_limit: Optional[float] = Field(default=0.0) # [NOVO] Limite de Crédito
+    observation: Optional[str] = None   # [NOVO] Observações internas
+
     created_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
 
 # --- TIMELINE E FEED ---

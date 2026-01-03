@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { Plus, Search, Trash2, Edit } from 'lucide-react';
 
-interface Role { name: string; slug: string; }
+interface Role { id: number; name: string; slug: string; }
 interface UserData {
   id: number;
   name: string;
@@ -24,17 +24,17 @@ export default function UserList() {
         api.get('/roles/')
       ]);
       
-      const rolesMap = new Map(rolesRes.data.map((r: any) => [r.id, r]));
+      const rolesMap = new Map(rolesRes.data.map((r: Role) => [r.id, r]));
       
       // Enriquece o usuário com o nome do cargo
-      const enrichedUsers = usersRes.data.map((u: any) => ({
+      const enrichedUsers = usersRes.data.map((u: UserData) => ({
           ...u,
           role_name: (rolesMap.get(u.role_id) as Role)?.name || 'Sem Cargo',
           role_slug: (rolesMap.get(u.role_id) as Role)?.slug || ''
       }));
       
       setUsers(enrichedUsers);
-    } catch (error) { console.error("Erro ao carregar"); }
+    } catch (error) { console.error("Erro ao carregar:", error); }
   };
 
   useEffect(() => { loadData(); }, []);
@@ -42,7 +42,7 @@ export default function UserList() {
   const handleDelete = async (id: number) => {
     if (confirm("Tem certeza? O usuário perderá o acesso.")) {
       try { await api.delete(`/users/${id}`); loadData(); } 
-      catch (error: any) { alert(error.response?.data?.detail || "Erro ao excluir"); }
+      catch (error) { const err = error as {response?: {data?: {detail?: string}}}; alert(err.response?.data?.detail || "Erro ao excluir"); }
     }
   };
 

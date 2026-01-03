@@ -43,7 +43,45 @@ class Token(BaseModel):
 
 # --- CUSTOMERS ---
 class CustomerCreate(BaseModel):
-    name: str; document: str; person_type: str; is_customer: bool = True; is_supplier: bool = False; status: str = "ativo"; salesperson_id: Optional[int] = None; rg: Optional[str] = None; issuing_organ: Optional[str] = None; ie: Optional[str] = None; email: Optional[str] = None; phone: Optional[str] = None; contact_name: Optional[str] = None; cep: Optional[str] = None; state: Optional[str] = None; city: Optional[str] = None; neighborhood: Optional[str] = None; address_line: Optional[str] = None; number: Optional[str] = None; complement: Optional[str] = None
+    # Identificação
+    name: str
+    fantasy_name: Optional[str] = None
+    document: str
+    person_type: str
+    
+    # Perfil e Status
+    is_customer: bool = True
+    is_supplier: bool = False
+    status: str = "ativo"
+    salesperson_id: Optional[int] = None
+    
+    # Fiscal
+    rg: Optional[str] = None
+    issuing_organ: Optional[str] = None
+    ie: Optional[str] = None
+    municipal_reg: Optional[str] = None
+    
+    # Contato
+    email: Optional[str] = None
+    email_nfe: Optional[str] = None
+    phone: Optional[str] = None
+    cellphone: Optional[str] = None
+    website: Optional[str] = None
+    contact_name: Optional[str] = None
+    
+    # Endereço
+    cep: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+    neighborhood: Optional[str] = None
+    address_line: Optional[str] = None
+    number: Optional[str] = None
+    complement: Optional[str] = None
+    
+    # Financeiro e Obs
+    credit_limit: Optional[float] = 0.0
+    observation: Optional[str] = None
+
     @field_validator('document')
     def validate_document(cls, v):
         doc_clean = "".join([d for d in v if d.isdigit()])
@@ -54,5 +92,6 @@ class CustomerCreate(BaseModel):
             if not CNPJ().validate(doc_clean): raise ValueError('CNPJ inválido')
             return doc_clean
         else: raise ValueError('Documento inválido')
+
 class CustomerRead(CustomerCreate):
     id: int; created_by_id: Optional[int]; created_at: datetime

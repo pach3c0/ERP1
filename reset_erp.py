@@ -20,15 +20,15 @@ TEAM_USERS = [
         "name": "Gerente Roberto",
         "email": "gerente@erp.com",
         "password": "123",
-        "role_slug": "manager", # Define que é Gerente
+        "role_slug": "manager",
         "supervisor_ids": []
     },
     {
         "name": "Vendedor Carlos",
         "email": "carlos@vendas.com",
         "password": "123",
-        "role_slug": "sales",   # Define que é Vendedor
-        "supervisor_ids": []    # Será preenchido com o ID do gerente depois
+        "role_slug": "sales",
+        "supervisor_ids": []
     },
     {
         "name": "Vendedora Ana",
@@ -39,21 +39,27 @@ TEAM_USERS = [
     }
 ]
 
-# 3. Dados dos Clientes (Um para cada vendedor)
+# 3. Dados dos Clientes (Agora com todos os campos obrigatórios da Fase 1)
 CUSTOMERS_DATA = [
     {
         "name": "Padaria do Carlos (Cliente)",
         "document": "11144477735",
-        "person_type": "PF",
+        "person_type": "fisica",
         "email": "padaria@carlos.com",
-        "owner_email": "carlos@vendas.com" # Vai para o Carlos
+        "phone": "11988887777",
+        "city": "São Paulo",
+        "state": "SP",
+        "owner_email": "carlos@vendas.com"
     },
     {
         "name": "Construtora da Ana (Cliente)",
         "document": "11222333000181",
-        "person_type": "PJ",
+        "person_type": "juridica",
         "email": "contato@ana.com",
-        "owner_email": "ana@vendas.com" # Vai para a Ana
+        "phone": "1133334444",
+        "city": "Santo André",
+        "state": "SP",
+        "owner_email": "ana@vendas.com"
     }
 ]
 
@@ -106,16 +112,25 @@ def seed_data():
     # 3. Buscar IDs dos CARGOS (Roles)
     print("   🔎 Buscando Cargos...")
     r = requests.get(f"{API_URL}/roles/", headers=headers)
-    roles_map = {role['slug']: role['id'] for role in r.json()}
+    roles_json = r.json()
+    roles_map = {role['slug']: role['id'] for role in roles_json}
     
-    # Mapeamento para guardar ID dos usuários criados (email -> id)
+    # --- NOVO: ATUALIZAR PERMISSÕES DOS CARGOS PARA EVITAR BLOQUEIOS ---
+    # Garante que as novas chaves de edição existam no banco resetado
+    for role in roles_json:
+        if role['slug'] in ['admin', 'manager']:
+            role['permissions'].update({"can_edit_own_customers": True, "can_edit_others_customers": True})
+        elif role['slug'] == 'sales':
+            role['permissions'].update({"can_edit_own_customers": True, "can_edit_others_customers": False})
+        
+        requests.put(f"{API_URL}/roles/{role['id']}/permissions", json={"permissions": role['permissions']}, headers=headers)
+
     users_map = {} 
 
     # 4. Criar EQUIPE (Gerente e Vendedores)
     for user in TEAM_USERS:
         role_id = roles_map.get(user["role_slug"])
         
-        # Se for vendedor, tenta adicionar o gerente como supervisor (se já tiver sido criado)
         if user["role_slug"] == "sales":
             gerente_id = users_map.get("gerente@erp.com")
             if gerente_id:
@@ -137,25 +152,30 @@ def seed_data():
         else:
             print(f"   ⚠️ Erro ao criar {user['name']}: {r.text}")
 
-    # 5. Criar CLIENTES (Vinculando aos Vendedores)
+    # 5. Criar CLIENTES (Com campos obrigatórios)
     print("   👥 Cadastrando Clientes iniciais...")
     for customer in CUSTOMERS_DATA:
         owner_id = users_map.get(customer["owner_email"])
         
-        # O Admin está criando, mas definindo o salesperson_id
         payload = {
             "name": customer["name"],
             "document": customer["document"],
             "person_type": customer["person_type"],
             "email": customer["email"],
-            "status": "ativo", # Admin criando já nasce ativo
-            "salesperson_id": owner_id # Vincula ao vendedor
+            "phone": customer["phone"],
+            "city": customer["city"],
+            "state": customer["state"],
+            "status": "ativo",
+            "salesperson_id": owner_id,
+            "is_customer": True,
+            "is_supplier": False
         }
         
         r = requests.post(f"{API_URL}/customers/", json=payload, headers=headers)
         if r.status_code == 200:
             print(f"   ✅ Cliente criado: {customer['name']} -> Vinculado a {customer['owner_email']}")
         else:
+            # Se houver erro, exibe o detalhe do Pydantic (ajuda no debug)
             print(f"   ⚠️ Erro no cliente {customer['name']}: {r.text}")
 
 def main():
@@ -173,8 +193,7 @@ def main():
     print("🎉 TUDO PRONTO! ACESSE http://localhost:5173")
     print(f"👉 Admin:   {ADMIN_USER['email']}")
     print(f"👉 Gerente: gerente@erp.com / 123")
-    print(f"👉 Vend 1:  carlos@vendas.com / 123 (Tem cliente PF)")
-    print(f"👉 Vend 2:  ana@vendas.com / 123 (Tem cliente PJ)")
+    print(f"👉 Vendedores: carlos@vendas.com ou ana@vendas.com")
     print("=========================================")
 
 if __name__ == "__main__":

@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../api';
 import { ArrowLeft, Save, User, Mail, Lock, Shield, Users } from 'lucide-react';
 
 interface Role { id: number; name: string; }
 interface SystemUser { id: number; name: string; }
+interface UserFromAPI { id: number; name: string; email: string; role_id: number; supervisors?: {id: number}[]; }
 
 export default function UserForm() {
   const navigate = useNavigate();
@@ -22,19 +23,19 @@ export default function UserForm() {
     supervisor_ids: [] as number[]
   });
 
-  const loadMetaData = async () => {
+  const loadMetaData = useCallback(async () => {
     try {
         const [rolesRes, usersRes] = await Promise.all([api.get('/roles/'), api.get('/users/')]);
         setRoles(rolesRes.data);
         setAllUsers(usersRes.data);
-    } catch (e) { console.error(e); }
-  };
+    } catch (error) { console.error('Erro ao carregar metadados:', error); }
+  }, []);
 
-  const loadUser = async () => {
+  const loadUser = useCallback(async () => {
     try {
         // Como o backend GET /users/ retorna lista, vamos filtrar no front (idealmente seria GET /users/:id)
         const { data } = await api.get('/users/');
-        const user = data.find((u: any) => u.id === Number(id));
+        const user = data.find((u: UserFromAPI) => u.id === Number(id));
         
         if (user) {
             setFormData({
@@ -43,30 +44,31 @@ export default function UserForm() {
                 password: '', // Senha não vem do back por segurança
                 role_id: user.role_id,
                 // Mapeia os objetos de supervisor para apenas IDs
-                supervisor_ids: user.supervisors ? user.supervisors.map((s: any) => s.id) : []
+                supervisor_ids: user.supervisors ? user.supervisors.map((s: {id: number}) => s.id) : []
             });
         }
-    } catch (e) { navigate('/users'); }
-  };
+    } catch (error) { console.error('Erro ao carregar usuário:', error); navigate('/users'); }
+  }, [id, navigate]);
 
   useEffect(() => {
     loadMetaData();
     if (isEditing) loadUser();
-  }, [id]);
+  }, [loadMetaData, isEditing, loadUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
         const payload = { ...formData };
         // Se estiver editando e senha estiver vazia, não manda (backend trata)
-        if (isEditing && !payload.password) delete (payload as any).password;
+        if (isEditing && !payload.password) delete (payload as {password?: string}).password;
 
         if (isEditing) await api.put(`/users/${id}`, payload);
         else await api.post('/users/', payload);
         
         navigate('/users');
-    } catch (error: any) {
-        alert(error.response?.data?.detail || "Erro ao salvar");
+    } catch (error) {
+        const err = error as {response?: {data?: {detail?: string}}};
+        alert(err.response?.data?.detail || "Erro ao salvar");
     }
   };
 
