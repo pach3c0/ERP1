@@ -41,7 +41,7 @@ Sempre que terminar uma funcionalidade ou correção, utilize os comandos abaixo
 git add .
 
 # Registra a versão com uma mensagem clara sobre o estado atual
-git commit -m "feat: refatoração modular, auditoria técnica e infraestrutura websocket"
+git commit -m "feat: ultimo pacheco"
 
 # Envia para o repositório remoto no GitHub
 git push
