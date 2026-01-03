@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { 
-  Plus, Search, User, Building2, MapPin, Phone, 
-  UserCheck, MoreVertical, Filter
+  Plus, Search, User, Building2, 
+  MoreVertical, Filter, History, UserSearch, Trash2, Printer, CheckCircle2
 } from 'lucide-react';
 
 interface Customer {
@@ -29,6 +29,10 @@ export default function CustomerList() {
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  
+  // ITEM 5: Seleção em massa
+  const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
+  const userRole = localStorage.getItem('role')?.toLowerCase() || 'visitante';
 
   useEffect(() => {
     fetchData();
@@ -51,6 +55,50 @@ export default function CustomerList() {
 
   const getSalespersonName = (id: number) => {
     return users.find(u => u.id === id)?.name || 'N/A';
+  };
+
+  const handleSelectOne = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation(); 
+    setSelectedCustomers(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedCustomers.length === filteredCustomers.length) {
+      setSelectedCustomers([]);
+    } else {
+      setSelectedCustomers(filteredCustomers.map(c => c.id));
+    }
+  };
+
+  const handleBulkReport = () => {
+    // TODO: Implementar geração de relatório
+    alert(`Gerar relatório para ${selectedCustomers.length} clientes selecionados: ${selectedCustomers.join(', ')}`);
+  };
+
+  const handleBulkStatus = () => {
+    // TODO: Implementar mudança de status em massa
+    alert(`Alterar status para ${selectedCustomers.length} clientes selecionados: ${selectedCustomers.join(', ')}`);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`Tem certeza que deseja excluir ${selectedCustomers.length} clientes?`)) return;
+    
+    try {
+      await Promise.all(selectedCustomers.map(id => api.delete(`/customers/${id}`)));
+      setCustomers(prev => prev.filter(c => !selectedCustomers.includes(c.id)));
+      setSelectedCustomers([]);
+      alert('Clientes excluídos com sucesso!');
+    } catch (error) {
+      console.error('Erro ao excluir clientes', error);
+      alert('Erro ao excluir clientes');
+    }
+  };
+
+  const handleFilters = () => {
+    // TODO: Implementar filtros avançados
+    alert('Funcionalidade de filtros em desenvolvimento');
   };
 
   const filteredCustomers = customers.filter(c => 
@@ -76,7 +124,7 @@ export default function CustomerList() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Clientes e Fornecedores</h1>
-          <p className="text-gray-500 text-sm">Gerencie todos os parceiros de negócio em um só lugar.</p>
+          <p className="text-gray-500 text-sm">Gerencie todos os parceiros de negócio.</p>
         </div>
         <button 
           onClick={() => navigate('/customers/new')}
@@ -85,6 +133,36 @@ export default function CustomerList() {
           <Plus size={20} /> Novo Cadastro
         </button>
       </div>
+
+      {/* ITEM 5: TOOLBAR AÇÕES EM MASSA */}
+      {selectedCustomers.length > 0 && (
+        <div className="mb-4 bg-indigo-600 text-white p-3 rounded-xl flex items-center justify-between shadow-lg">
+          <span className="font-bold ml-2">{selectedCustomers.length} selecionados</span>
+          <div className="flex gap-2">
+            <button 
+              onClick={handleBulkReport}
+              className="px-3 py-1.5 hover:bg-indigo-700 rounded-lg flex items-center gap-1.5 text-sm transition"
+            >
+              <Printer size={16}/> Relatório
+            </button>
+            <button 
+              onClick={handleBulkStatus}
+              className="px-3 py-1.5 hover:bg-indigo-700 rounded-lg flex items-center gap-1.5 text-sm transition"
+            >
+              <CheckCircle2 size={16}/> Status
+            </button>
+            {/* ITEM 6: Somente Admin pode deletar */}
+            {userRole === 'admin' && (
+              <button 
+                onClick={handleBulkDelete}
+                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg flex items-center gap-1.5 text-sm transition"
+              >
+                <Trash2 size={16}/> Excluir
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="p-4 border-b border-gray-100 bg-gray-50 flex gap-4">
@@ -98,7 +176,10 @@ export default function CustomerList() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg flex items-center gap-2 hover:bg-white transition text-gray-600">
+          <button 
+            onClick={handleFilters}
+            className="px-4 py-2 border border-gray-300 rounded-lg flex items-center gap-2 hover:bg-white transition text-gray-600"
+          >
             <Filter size={18} /> Filtros
           </button>
         </div>
@@ -107,10 +188,16 @@ export default function CustomerList() {
           <table className="w-full text-left">
             <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold">
               <tr>
-                <th className="px-6 py-4">Nome / Razão Social</th>
+                <th className="px-6 py-4 w-10">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedCustomers.length === filteredCustomers.length && filteredCustomers.length > 0}
+                    onChange={handleSelectAll}
+                  />
+                </th>
+                <th className="px-6 py-4">Nome</th>
                 <th className="px-6 py-4">CPF / CNPJ</th>
                 <th className="px-6 py-4">Cidade/UF</th>
-                <th className="px-6 py-4">Telefone</th>
                 <th className="px-6 py-4">Vendedor</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-center">Ações</th>
@@ -118,9 +205,16 @@ export default function CustomerList() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={7} className="text-center py-10 text-gray-400">Carregando parceiros...</td></tr>
+                <tr><td colSpan={8} className="text-center py-10 text-gray-400">Carregando...</td></tr>
               ) : filteredCustomers.map(customer => (
-                <tr key={customer.id} className="hover:bg-gray-50 transition cursor-pointer" onClick={() => navigate(`/customers/${customer.id}`)}>
+                <tr key={customer.id} className="hover:bg-gray-50 transition group" onClick={() => navigate(`/customers/${customer.id}`)}>
+                  <td className="px-6 py-4" onClick={(e) => handleSelectOne(e as any, customer.id)}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedCustomers.includes(customer.id)}
+                      readOnly
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
@@ -130,29 +224,31 @@ export default function CustomerList() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-gray-600 font-mono text-sm">{customer.document}</td>
-                  <td className="px-6 py-4 text-gray-600 text-sm">
-                    <div className="flex items-center gap-1">
-                      <MapPin size={14} className="text-gray-400" />
-                      {customer.city}/{customer.state}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Phone size={14} className="text-gray-400" />
-                      {customer.phone || 'N/D'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <UserCheck size={14} className="text-indigo-400" />
-                      {getSalespersonName(customer.salesperson_id)}
-                    </div>
-                  </td>
+                  <td className="px-6 py-4 text-gray-600 text-sm">{customer.city}/{customer.state}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">{getSalespersonName(customer.salesperson_id)}</td>
                   <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="p-2 hover:bg-gray-200 rounded-full transition text-gray-400">
-                      <MoreVertical size={18} />
-                    </button>
+                  <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center gap-2">
+                      {/* BOTÃO CRM PARA TODOS */}
+                      <button 
+                        onClick={() => navigate(`/crm/${customer.id}`)}
+                        className="p-2 hover:bg-indigo-50 text-indigo-400 hover:text-indigo-600 rounded-full transition"
+                        title="Abrir CRM"
+                      >
+                        <UserSearch size={18} />
+                      </button>
+                      {/* ITEM 1: BOTÃO AUDITORIA - SOMENTE ADMIN */}
+                      {userRole === 'admin' && (
+                        <button 
+                          onClick={() => navigate(`/audit/customer/${customer.id}`)}
+                          className="p-2 hover:bg-amber-50 text-amber-400 hover:text-amber-600 rounded-full transition"
+                          title="Ver Auditoria"
+                        >
+                          <History size={18} />
+                        </button>
+                      )}
+                      <button className="p-2 hover:bg-gray-200 rounded-full text-gray-400"><MoreVertical size={18} /></button>
+                    </div>
                   </td>
                 </tr>
               ))}

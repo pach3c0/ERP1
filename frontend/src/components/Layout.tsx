@@ -3,7 +3,8 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { 
   LayoutDashboard, Users, LogOut, FolderPlus, 
-  ChevronDown, ChevronRight, Shield, UserCircle, UserCog, Settings, Bell 
+  ChevronDown, ChevronRight, UserCog, Settings, Bell,
+  Briefcase 
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -31,18 +32,81 @@ export default function Layout({ onLogout }: LayoutProps) {
   const userEmail = localStorage.getItem('user_email') || '...';
   const token = localStorage.getItem('token');
   
-  const roleNames: Record<string, string> = { 'admin': 'Super Admin', 'manager': 'Gerente', 'sales': 'Vendedor', 'user': 'Usuário' };
+  const roleNames: Record<string, string> = { 
+    'admin': 'Super Admin', 
+    'manager': 'Gerente', 
+    'sales': 'Vendedor', 
+    'user': 'Usuário' 
+  };
   const displayRole = roleNames[userRole] || userRole;
 
-  // --- LÓGICA DE NOTIFICAÇÕES (WEBSOCKET ROBUSTO) ---
+  // --- FUNÇÃO PARA TOCAR SOM DE NOTIFICAÇÃO ---
+  const playNotificationSound = () => {
+    try {
+      // Criar um som de notificação agradável usando Web Audio API
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Criar dois osciladores para um som mais rico
+      const oscillator1 = audioContext.createOscillator();
+      const oscillator2 = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      // Conectar os osciladores ao gain node
+      oscillator1.connect(gainNode);
+      oscillator2.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Configurações do primeiro oscilador (tom principal)
+      oscillator1.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator1.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
+      oscillator1.type = 'sine';
+      
+      // Configurações do segundo oscilador (harmônico)
+      oscillator2.frequency.setValueAtTime(1200, audioContext.currentTime);
+      oscillator2.frequency.exponentialRampToValueAtTime(900, audioContext.currentTime + 0.1);
+      oscillator2.type = 'sine';
+      
+      // Controle de volume com envelope ADSR simples
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.01); // Attack
+      gainNode.gain.exponentialRampToValueAtTime(0.05, audioContext.currentTime + 0.1); // Decay/Sustain
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3); // Release
+      
+      // Tocar por 0.3 segundos
+      oscillator1.start(audioContext.currentTime);
+      oscillator2.start(audioContext.currentTime);
+      oscillator1.stop(audioContext.currentTime + 0.3);
+      oscillator2.stop(audioContext.currentTime + 0.3);
+      
+    } catch (error) {
+      console.warn('Web Audio API não suportada, tentando Notification API:', error);
+      // Fallback: tentar usar Notification API se disponível
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Nova notificação!', { 
+          silent: false,
+          icon: '/vite.svg' // Usar ícone do projeto
+        });
+      } else if ('Notification' in window && Notification.permission !== 'denied') {
+        // Solicitar permissão se ainda não foi negada
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification('Nova notificação!', { 
+              silent: false,
+              icon: '/vite.svg'
+            });
+          }
+        });
+      }
+    }
+  };
+
+  // --- LÓGICA DE NOTIFICAÇÕES (WEBSOCKET ROBUSTO PRESERVADA) ---
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   
-  // Referência para manter a conexão WebSocket persistente entre renderizações
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // 1. Busca notificações antigas (Histórico via API REST)
     const fetchNotifs = async () => {
         try { 
             const { data } = await api.get('/notifications/'); 
@@ -53,50 +117,39 @@ export default function Layout({ onLogout }: LayoutProps) {
     };
     fetchNotifs();
 
-    // 2. Conecta WebSocket para Tempo Real
     if (token) {
         const connectWs = () => {
-            // Evita criar múltiplas conexões se já existir uma aberta
             if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-                console.log("🔵 WS: Conexão já existe e está ativa.");
                 return;
             }
-            
-            // Fecha conexão anterior se estiver em estado inconsistente
             if (ws.current) ws.current.close();
 
             const wsUrl = `ws://localhost:8000/ws?token=${token}`;
-            console.log("🔵 WS: Iniciando conexão em", wsUrl);
-            
             ws.current = new WebSocket(wsUrl);
 
             ws.current.onopen = () => {
-                console.log("🟢 WS: Conexão Estabelecida com Sucesso!");
+                console.log("🟢 WS: Conexão Estabelecida!");
             };
             
             ws.current.onmessage = (event: MessageEvent) => {
-                // Log "fofoqueiro" para vermos o que chega do backend
-                console.log("📨 WS Recebeu Dados:", event.data);
-                
                 try {
                     const data = JSON.parse(event.data);
-                    
                     if (data.type === 'notification') {
-                        // Cria objeto de notificação para a UI
                         const newNotif: NotificationItem = {
-                            id: Date.now(), // ID temporário para o React renderizar imediatamente
+                            id: Date.now(),
                             content: data.content,
                             link: data.link,
                             is_read: false,
                             created_at: new Date().toISOString()
                         };
-                        
-                        // Atualiza estado do Sininho
                         setNotifications((prev) => [newNotif, ...prev]);
+                        const customEvent = new CustomEvent('erp-notification', { detail: data });
+                        window.dispatchEvent(customEvent);
                         
-                        // IMPORTANTE: Dispara evento global para outros componentes (ex: Chat)
-                        // Isso permite que o CustomerForm.tsx saiba que chegou mensagem nova
-                        console.log("📣 WS: Disparando evento global 'erp-notification'");
+                        // Tocar som de notificação
+                        playNotificationSound();
+                    } else if (data.type === 'feed_update') {
+                        console.log('📢 WS: Feed update recebido, disparando evento:', data);
                         const customEvent = new CustomEvent('erp-notification', { detail: data });
                         window.dispatchEvent(customEvent);
                     }
@@ -105,40 +158,25 @@ export default function Layout({ onLogout }: LayoutProps) {
                 }
             };
 
-            ws.current.onerror = (error) => {
-                console.error("❌ WS Erro na conexão:", error);
-            };
-
-            ws.current.onclose = (e) => {
-                // Lógica de Reconexão Automática (Heartbeat)
-                console.log(`🔴 WS Desconectado (Código: ${e.code}). Tentando reconectar em 3s...`);
+            ws.current.onclose = () => {
                 setTimeout(() => connectWs(), 3000);
             };
         };
-        
-        // Inicia a conexão
         connectWs();
     }
 
-    // Cleanup: Fecha a conexão ao desmontar o componente (logout/sair da app)
     return () => {
         if (ws.current) {
-            console.log("Saindo do Layout... Fechando WS.");
             ws.current.close();
             ws.current = null;
         }
     };
   }, [token]);
 
-  // Marca notificação como lida ao clicar
   const handleReadNotification = async (notif: NotificationItem) => {
-      // Se for ID temporário (timestamp), não tenta marcar no backend pois não existe lá ainda com esse ID
-      // IDs reais do banco são pequenos (inteiros), timestamps são enormes.
       if (notif.id < 1000000000000) { 
-          try { await api.post(`/notifications/${notif.id}/read`); } catch (error) { console.error('Erro ao marcar notificação como lida:', error); }
+          try { await api.post(`/notifications/${notif.id}/read`); } catch (error) { console.error('Erro:', error); }
       }
-      
-      // Remove da lista visual
       setNotifications((prev: NotificationItem[]) => prev.filter((n: NotificationItem) => n.content !== notif.content));
       setShowNotifMenu(false);
       navigate(notif.link);
@@ -155,11 +193,15 @@ export default function Layout({ onLogout }: LayoutProps) {
              <span className="font-bold text-gray-800 text-lg tracking-tight">ERP Agent</span>
           </div>
           <div className="mt-2">
+             {/* AJUSTE: Cargo em local separado com estilo de Badge técnico */}
              <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
-                {userRole === 'admin' ? <Shield size={12} className="text-blue-600"/> : <UserCircle size={12}/>}
-                <span className="uppercase tracking-wide font-semibold text-[10px] bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">{displayRole}</span>
+                <span className="uppercase tracking-wide font-bold text-[10px] bg-blue-50 px-2 py-0.5 rounded text-blue-600 border border-blue-100 flex items-center gap-1">
+                   <Briefcase size={10} />
+                   {displayRole}
+                </span>
              </div>
-             <p className="text-sm font-bold text-gray-800 truncate" title={userName}>{userName}</p>
+             {/* AJUSTE: Apenas Nome e Sobrenome em destaque principal */}
+             <p className="text-sm font-bold text-gray-900 truncate" title={userName}>{userName}</p>
              <p className="text-xs text-gray-400 truncate" title={userEmail}>{userEmail}</p>
           </div>
         </div>

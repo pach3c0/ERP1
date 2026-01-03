@@ -8,6 +8,7 @@ from models import User, Customer, FeedItem, Notification, CustomerNote
 from schemas import FeedRead, FeedCreate, NotificationRead
 from dependencies import get_current_user, get_user_role_slug
 from utils import log_activity
+from connection_manager import manager
 
 router = APIRouter(tags=["Feed e Notificações"])
 
@@ -42,13 +43,53 @@ def get_feed(user_id: Optional[int] = None, start_date: Optional[datetime] = Non
     return feed_response
 
 @router.post("/feed/", response_model=FeedRead)
-def create_feed_post(feed_data: FeedCreate, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+async def create_feed_post(feed_data: FeedCreate, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     visibility = "public"
     if "@todos" in feed_data.content: visibility = "public"
-    feed_item = FeedItem(content=feed_data.content, icon="message-circle", user_id=current_user.id, visibility=visibility)
+    
+    # Processar menções
+    import re
+    mentions = re.findall(r'@(\w+)', feed_data.content)
+    if mentions:
+        for mention in mentions:
+            # Procurar usuário por nome (case insensitive)
+            user = session.exec(select(User).where(User.name.ilike(f"%{mention}%"))).first()
+            if user and user.id != current_user.id:
+                # Criar notificação
+                notification = Notification(
+                    user_id=user.id,
+                    content=f"{current_user.name} mencionou você no feed: {feed_data.content[:100]}{'...' if len(feed_data.content) > 100 else ''}",
+                    link=f"/"
+                )
+                session.add(notification)
+                session.commit()  # Commit para obter o ID da notificação
+                
+                # Enviar via WebSocket
+                await manager.send_personal_message({
+                    "type": "notification",
+                    "content": notification.content,
+                    "link": notification.link
+                }, user.id)
+    
+    feed_item = FeedItem(content=feed_data.content, icon="at-sign", user_id=current_user.id, visibility=visibility)
     session.add(feed_item)
     session.commit()
     session.refresh(feed_item)
+    
+    # Notificar todos os usuários conectados sobre o novo post no feed
+    await manager.broadcast({
+        "type": "feed_update",
+        "action": "new_post",
+        "post": {
+            "id": feed_item.id,
+            "content": feed_item.content,
+            "icon": feed_item.icon,
+            "created_at": feed_item.created_at.isoformat(),
+            "user_name": current_user.name,
+            "visibility": visibility
+        }
+    })
+    
     return FeedRead(id=feed_item.id, content=feed_item.content, icon=feed_item.icon, created_at=feed_item.created_at, user_name=current_user.name, visibility=visibility)
 
 @router.get("/notifications/", response_model=List[NotificationRead])

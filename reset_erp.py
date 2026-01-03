@@ -9,7 +9,7 @@ RETRIES = 30
 
 # 1. Dados do ADMIN (O Dono do Sistema)
 ADMIN_USER = {
-    "name": "Admin Pacheco",
+    "name": "Ricardo Pacheco",
     "email": "pacheco@rhynoproject.com.br",
     "password": "123"
 }
@@ -17,21 +17,21 @@ ADMIN_USER = {
 # 2. Dados da Equipe (Serão criados pelo Admin)
 TEAM_USERS = [
     {
-        "name": "Gerente Roberto",
+        "name": "Roberto Mansao",
         "email": "gerente@erp.com",
         "password": "123",
         "role_slug": "manager",
         "supervisor_ids": []
     },
     {
-        "name": "Vendedor Carlos",
+        "name": "Carlos Alves",
         "email": "carlos@vendas.com",
         "password": "123",
         "role_slug": "sales",
         "supervisor_ids": []
     },
     {
-        "name": "Vendedora Ana",
+        "name": "Ana Soares",
         "email": "ana@vendas.com",
         "password": "123",
         "role_slug": "sales",
@@ -88,11 +88,17 @@ def wait_for_api():
 def seed_data():
     print("\n🌱 Iniciando população do Banco de Dados...")
     
-    # 1. Criar ADMIN (Rota Pública)
+    # 1. Criar ADMIN (Rota Pública) ou Logar se já existe
     try:
-        print(f"   Criando Admin: {ADMIN_USER['name']}...")
+        print(f"   Criando ou autenticando Admin: {ADMIN_USER['name']}...")
         r = requests.post(f"{API_URL}/auth/register", json=ADMIN_USER)
-        if r.status_code != 200:
+        if r.status_code == 400 and "Email já cadastrado" in r.text:
+            print("   Admin já existe, fazendo login...")
+            r = requests.post(f"{API_URL}/auth/login", data={"username": ADMIN_USER["email"], "password": ADMIN_USER["password"]})
+            if r.status_code != 200:
+                print("❌ Falha no login do Admin.")
+                return
+        elif r.status_code != 200:
             print(f"❌ Erro ao criar Admin: {r.text}")
             return
     except Exception as e:

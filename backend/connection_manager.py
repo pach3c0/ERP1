@@ -42,4 +42,18 @@ class ConnectionManager:
         else:
             print(f"⚠️ WS: Usuário {user_id} offline. Mensagem não entregue via socket. (Usuários online: {list(self.active_connections.keys())})")
 
+    async def broadcast(self, message: dict):
+        """Envia mensagem para todos os usuários conectados"""
+        print(f"📢 WS Broadcast: Enviando para {len(self.active_connections)} usuários online")
+        
+        for user_id, connections in self.active_connections.items():
+            # Iterar sobre uma cópia da lista para evitar erros
+            connections_copy = connections[:]
+            for connection in connections_copy:
+                try:
+                    await connection.send_json(message)
+                    print(f"✅ WS Broadcast: Enviado para User {user_id}")
+                except Exception as e:
+                    print(f"❌ WS Broadcast: Falha ao enviar para User {user_id}: {e}")
+
 manager = ConnectionManager()

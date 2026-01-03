@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // Componentes
@@ -6,7 +6,7 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import Home from './components/Home';
 
-// Users (NOVOS)
+// Users
 import UserList from './components/UserList';
 import UserForm from './components/UserForm';
 
@@ -18,6 +18,8 @@ import CustomerForm from './components/CustomerForm';
 import Settings from './components/Settings';
 import FinancialProfile from './components/FinancialProfile';
 import CRMProfile from './components/CRMProfile';
+import AuditView from './components/AuditView';
+import TrashView from './components/TrashView'; 
 
 function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
@@ -30,13 +32,30 @@ function App() {
     setToken(newToken);
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('user_name');
     localStorage.removeItem('user_email');
     setToken(null);
-  };
+  }, []);
+
+  // Monitor de Inatividade (10 minutos)
+  useEffect(() => {
+    if (!token) return;
+    let timeout: ReturnType<typeof setTimeout>;
+    const resetTimer = () => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => handleLogout(), 600000);
+    };
+    const events = ['mousemove', 'keydown', 'click', 'scroll'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+    resetTimer();
+    return () => {
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [token, handleLogout]);
 
   return (
     <BrowserRouter>
@@ -47,17 +66,19 @@ function App() {
           <Route element={<Layout onLogout={handleLogout} />}>
             <Route path="/" element={<Home />} />
             
-            {/* ROTAS DE USUÁRIOS (Atualizadas) */}
             <Route path="/users" element={<UserList />} />
             <Route path="/users/new" element={<UserForm />} />
             <Route path="/users/:id" element={<UserForm />} />
 
-            {/* ROTAS DE CLIENTES */}
             <Route path="/customers" element={<CustomerList />} />
             <Route path="/customers/new" element={<CustomerForm />} />
             <Route path="/customers/:id" element={<CustomerForm />} />
 
+            {/* NOVA ROTA DE AUDITORIA: Adicionada para evitar o redirecionamento para Home */}
+            <Route path="/audit/customer/:id" element={<AuditView />} /> 
+
             <Route path="/settings" element={<Settings />} />
+            <Route path="/settings/trash" element={<TrashView />} />
             <Route path="/financial/:id" element={<FinancialProfile />} />
             <Route path="/crm/:id" element={<CRMProfile />} />
 

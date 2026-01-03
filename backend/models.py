@@ -28,6 +28,8 @@ class User(BaseModel, table=True):
     is_active: bool = Field(default=True)
     role_id: Optional[int] = Field(default=None, foreign_key="role.id")
     
+    role: Optional["Role"] = Relationship()
+    
     supervisors: List["User"] = Relationship(
         back_populates="monitoring",
         link_model=UserSupervisor,

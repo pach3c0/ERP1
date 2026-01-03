@@ -20,6 +20,10 @@ export default function Home() {
   
   // Postagem
   const [newPost, setNewPost] = useState('');
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [cursorPosition, setCursorPosition] = useState(0);
   
   // Filtros
   const [users, setUsers] = useState<SystemUser[]>([]);
@@ -62,6 +66,24 @@ export default function Home() {
       loadFeed();
   }, [loadFeed]);
 
+  // Listener para atualizações em tempo real do feed via WebSocket
+  useEffect(() => {
+    const handleFeedUpdate = (event: CustomEvent) => {
+      const data = event.detail;
+      if (data.type === 'feed_update' && data.action === 'new_post') {
+        console.log('📢 Feed update received:', data.post);
+        // Recarregar o feed para mostrar a nova postagem
+        loadFeed();
+      }
+    };
+
+    window.addEventListener('erp-notification', handleFeedUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('erp-notification', handleFeedUpdate as EventListener);
+    };
+  }, [loadFeed]);
+
   const handlePost = async (e: React.FormEvent) => {
       e.preventDefault();
       if(!newPost.trim()) return;
@@ -70,6 +92,58 @@ export default function Home() {
           setNewPost('');
           loadFeed();
       } catch (error) { console.error('Erro ao postar:', error); alert("Erro ao postar."); }
+  };
+
+  const handlePostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const cursor = e.target.selectionStart || 0;
+    setCursorPosition(cursor);
+    setNewPost(val);
+
+    // Detectar menções (@)
+    const beforeCursor = val.substring(0, cursor);
+    const mentionMatch = beforeCursor.match(/@(\w*)$/);
+
+    if (mentionMatch) {
+      setMentionQuery(mentionMatch[1]);
+      setShowMentions(true);
+      setMentionIndex(0);
+    } else {
+      setShowMentions(false);
+      setMentionQuery('');
+    }
+  };
+
+  const handleMentionSelect = (userName: string) => {
+    const beforeMention = newPost.substring(0, cursorPosition - mentionQuery.length - 1);
+    const afterMention = newPost.substring(cursorPosition);
+    const newText = `${beforeMention}@${userName} ${afterMention}`;
+    setNewPost(newText);
+    setShowMentions(false);
+    setMentionQuery('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showMentions) return;
+
+    const filteredUsers = users.filter(u =>
+      u.name.toLowerCase().includes(mentionQuery.toLowerCase())
+    );
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setMentionIndex(prev => (prev + 1) % filteredUsers.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setMentionIndex(prev => prev === 0 ? filteredUsers.length - 1 : prev - 1);
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      if (filteredUsers[mentionIndex]) {
+        handleMentionSelect(filteredUsers[mentionIndex].name);
+      }
+    } else if (e.key === 'Escape') {
+      setShowMentions(false);
+    }
   };
 
   const clearFilters = () => {
@@ -129,14 +203,31 @@ export default function Home() {
 
           {/* Área de Postagem */}
           <div className="p-4 border-b border-gray-100 bg-white">
-              <form onSubmit={handlePost} className="flex gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="Escreva algo no mural..." 
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-400"
-                    value={newPost}
-                    onChange={e => setNewPost(e.target.value)}
-                  />
+              <form onSubmit={handlePost} className="flex gap-2 relative">
+                  <div className="flex-1 relative">
+                      <input
+                        type="text"
+                        placeholder="Escreva algo no mural... Use @ para mencionar"
+                        className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-blue-400"
+                        value={newPost}
+                        onChange={handlePostChange}
+                        onKeyDown={handleKeyDown}
+                      />
+                      {showMentions && (
+                        <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
+                          {users.filter(u => u.name.toLowerCase().includes(mentionQuery.toLowerCase())).map((user, index) => (
+                            <div
+                              key={user.id}
+                              className={`px-4 py-2 cursor-pointer hover:bg-gray-50 ${index === mentionIndex ? 'bg-blue-50' : ''}`}
+                              onClick={() => handleMentionSelect(user.name)}
+                            >
+                              <span className="font-medium">{user.name}</span>
+                              <span className="text-gray-500 text-sm ml-2">@{user.name.toLowerCase().replace(/\s+/g, '')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                  </div>
                   <button className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition"><Send size={16}/></button>
               </form>
           </div>

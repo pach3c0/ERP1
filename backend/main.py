@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 
 from database import create_db_and_tables, engine
 from models import Role
-from routers import auth, users, customers, feed, websockets 
+from routers import auth, users, customers, feed, websockets, audit 
 
 def create_default_roles():
     """Cria os cargos padrão se não existirem."""
@@ -67,3 +67,4 @@ app.include_router(users.router)
 app.include_router(customers.router)
 app.include_router(feed.router)
 app.include_router(websockets.router)
+app.include_router(audit.router)

@@ -65,6 +65,7 @@ export default function CustomerForm() {
 
   // --- Estados ---
   const [users, setUsers] = useState<User[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [notes, setNotes] = useState<CustomerNote[]>([]);
   const [loadingCep, setLoadingCep] = useState(false);
   const [canChangeStatus, setCanChangeStatus] = useState(false);
@@ -77,6 +78,12 @@ export default function CustomerForm() {
   const [noteType, setNoteType] = useState<'message' | 'task'>('message');
   const [targetUserId, setTargetUserId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // --- Estados para Menções ---
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [cursorPosition, setCursorPosition] = useState(0);
 
   const userRoleSlug = localStorage.getItem('role') || 'visitante';
   const isAdmin = userRoleSlug === 'admin';
@@ -98,6 +105,11 @@ export default function CustomerForm() {
         setUsers(usersRes.data);
         const myRole = rolesRes.data.find((r: { slug: string; permissions?: { customer_change_status?: boolean } }) => r.slug === userRoleSlug);
         setCanChangeStatus(isAdmin || (myRole?.permissions?.customer_change_status === true));
+        
+        // Definir currentUserId
+        const userEmail = localStorage.getItem('user_email');
+        const currentUser = usersRes.data.find((u: User) => u.email === userEmail);
+        setCurrentUserId(currentUser ? currentUser.id : null);
     } catch (error) {
       console.error('Erro ao carregar metadados:', error);
     }
@@ -132,7 +144,14 @@ export default function CustomerForm() {
     loadMetaData();
     if (isEditing) loadUser();
     loadNotes();
-  }, [loadMetaData, isEditing, loadUser, loadNotes]); // Usar as funções memoizadas
+  }, [loadMetaData, isEditing, loadUser, loadNotes]);
+
+  // Para novos cadastros de vendedores, definir salesperson_id automaticamente
+  useEffect(() => {
+    if (!isEditing && userRoleSlug === 'sales' && currentUserId) {
+      setFormData(prev => ({ ...prev, salesperson_id: currentUserId.toString() }));
+    }
+  }, [isEditing, userRoleSlug, currentUserId]); // Usar as funções memoizadas
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -222,11 +241,17 @@ export default function CustomerForm() {
         salesperson_id: formData.salesperson_id ? Number(formData.salesperson_id) : null 
     };
 
+    // Para novos cadastros de vendedores, definir automaticamente o salesperson_id
+    if (!isEditing && userRoleSlug === 'sales' && currentUserId) {
+        payload.salesperson_id = currentUserId;
+    }
+
     try {
       if (isEditing) await api.put(`/customers/${id}`, payload);
       else await api.post('/customers/', payload);
       navigate('/customers');
     } catch (error: unknown) {
+      console.error('Erro completo ao salvar:', error);
       const err = error as { response?: { data?: { detail?: string | Array<{ msg: string }> } } };
       const errorMsg = err.response?.data?.detail;
       if (typeof errorMsg === 'string') alert(errorMsg);
@@ -237,11 +262,63 @@ export default function CustomerForm() {
 
   // --- Helpers Chat ---
   const handleNoteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value; 
+    const val = e.target.value;
+    const cursor = e.target.selectionStart || 0;
+    setCursorPosition(cursor);
     setNewNote(val);
-    // TODO: Implementar menção de usuários
-    // const match = val.match(/@(\w*)$/);
-    // if (match) { /* lógica de menção */ } else { /* remover menção */ }
+
+    // Detectar menções (@)
+    const beforeCursor = val.substring(0, cursor);
+    const mentionMatch = beforeCursor.match(/@(\w*)$/);
+
+    if (mentionMatch) {
+      setMentionQuery(mentionMatch[1]);
+      setShowMentions(true);
+      setMentionIndex(0);
+    } else {
+      setShowMentions(false);
+      setMentionQuery('');
+    }
+  };
+
+  const handleMentionSelect = (userName: string) => {
+    const beforeMention = newNote.substring(0, cursorPosition - mentionQuery.length - 1);
+    const afterMention = newNote.substring(cursorPosition);
+    const newText = `${beforeMention}@${userName} ${afterMention}`;
+    setNewNote(newText);
+    setShowMentions(false);
+    setMentionQuery('');
+    // Focar no input e posicionar cursor após a menção
+    setTimeout(() => {
+      if (inputRef.current) {
+        const newCursorPos = beforeMention.length + userName.length + 2;
+        inputRef.current.focus();
+        inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showMentions) return;
+
+    const filteredUsers = users.filter(u =>
+      u.name.toLowerCase().includes(mentionQuery.toLowerCase())
+    );
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setMentionIndex(prev => (prev + 1) % filteredUsers.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setMentionIndex(prev => prev === 0 ? filteredUsers.length - 1 : prev - 1);
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      if (filteredUsers[mentionIndex]) {
+        handleMentionSelect(filteredUsers[mentionIndex].name);
+      }
+    } else if (e.key === 'Escape') {
+      setShowMentions(false);
+    }
   };
   const handleAddNote = async (e: React.FormEvent) => {
       e.preventDefault(); if(!newNote.trim()) return;
@@ -397,7 +474,31 @@ export default function CustomerForm() {
               <div className="bg-gray-50 border-b border-gray-100 p-4"><h3 className="font-bold text-gray-700 flex items-center gap-2"><MessageSquare size={18}/> Linha do Tempo</h3></div>
               <div className="p-6">
                   <form onSubmit={handleAddNote} className="mb-8 flex gap-2 relative">
-                      <input ref={inputRef} type="text" placeholder="Digite uma mensagem... Use @ para mencionar" className="flex-1 px-4 py-3 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-indigo-500" value={newNote} onChange={handleNoteChange} />
+                      <div className="flex-1 relative">
+                          <input
+                            ref={inputRef}
+                            type="text"
+                            placeholder="Digite uma mensagem... Use @ para mencionar"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={newNote}
+                            onChange={handleNoteChange}
+                            onKeyDown={handleKeyDown}
+                          />
+                          {showMentions && (
+                            <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
+                              {users.filter(u => u.name.toLowerCase().includes(mentionQuery.toLowerCase())).map((user, index) => (
+                                <div
+                                  key={user.id}
+                                  className={`px-4 py-2 cursor-pointer hover:bg-gray-50 ${index === mentionIndex ? 'bg-indigo-50' : ''}`}
+                                  onClick={() => handleMentionSelect(user.name)}
+                                >
+                                  <span className="font-medium">{user.name}</span>
+                                  <span className="text-gray-500 text-sm ml-2">@{user.name.toLowerCase().replace(/\s+/g, '')}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                      </div>
                       <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 rounded-lg flex items-center gap-2"><Send size={18}/> Enviar</button>
                   </form>
                   <div className="space-y-6">

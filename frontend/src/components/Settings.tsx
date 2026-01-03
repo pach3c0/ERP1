@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../api';
-import { Shield, Save, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Shield, Save, CheckCircle, XCircle, Info, Trash2 } from 'lucide-react';
 
 interface Role {
   id: number;
@@ -159,6 +159,32 @@ export default function Settings() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Gerenciamento de Dados</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center">
+                  <Trash2 size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800">Lixeira de Cadastros</h3>
+                  <p className="text-sm text-gray-600">Gerencie clientes excluídos - restaure ou exclua definitivamente</p>
+                </div>
+              </div>
+              <button
+                onClick={() => window.location.href = '/settings/trash'}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
+              >
+                <Trash2 size={16} />
+                Acessar Lixeira
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
