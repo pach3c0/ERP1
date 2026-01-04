@@ -14,6 +14,12 @@ import UserForm from './components/UserForm';
 import CustomerList from './components/CustomerList';
 import CustomerForm from './components/CustomerForm';
 
+// Products & Services
+import ProductList from './components/ProductList';
+import ProductForm from './components/ProductForm';
+import ServiceList from './components/ServiceList';
+import ServiceForm from './components/ServiceForm';
+
 // Módulos Extras
 import Settings from './components/Settings';
 import FinancialProfile from './components/FinancialProfile';
@@ -73,6 +79,14 @@ function App() {
             <Route path="/customers" element={<CustomerList />} />
             <Route path="/customers/new" element={<CustomerForm />} />
             <Route path="/customers/:id" element={<CustomerForm />} />
+
+            <Route path="/products" element={<ProductList />} />
+            <Route path="/products/new" element={<ProductForm />} />
+            <Route path="/products/:id" element={<ProductForm />} />
+
+            <Route path="/services" element={<ServiceList />} />
+            <Route path="/services/new" element={<ServiceForm />} />
+            <Route path="/services/:id" element={<ServiceForm />} />
 
             {/* NOVA ROTA DE AUDITORIA: Adicionada para evitar o redirecionamento para Home */}
             <Route path="/audit/customer/:id" element={<AuditView />} /> 

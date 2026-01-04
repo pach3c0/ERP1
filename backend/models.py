@@ -126,3 +126,36 @@ class AuditLog(BaseModel, table=True):
     # Guarda o que mudou em formato JSON
     # Ex: {"status": "inativo"}
     changes: Dict = Field(default={}, sa_column=Column(JSON))
+
+# --- PRODUTOS PARA LOCAÇÃO ---
+class Product(BaseModel, table=True):
+    name: str = Field(index=True)
+    description: Optional[str] = None
+    category: str = Field(default="geral")  # eletrônicos, equipamentos, móveis, etc
+    status: str = Field(default="disponivel")  # disponivel, locado, em_manutencao, inativo
+    
+    # Preços para locação
+    price_daily: float = Field(default=0.0)      # Preço por dia
+    price_weekly: float = Field(default=0.0)     # Preço por semana
+    price_monthly: float = Field(default=0.0)    # Preço por mês
+    cost: float = Field(default=0.0)             # Custo de aquisição
+    
+    # Informações adicionais
+    quantity: int = Field(default=1)             # Quantidade disponível
+    serial_number: Optional[str] = None          # Número de série
+    notes: Optional[str] = None                  # Observações
+
+# --- SERVIÇOS ---
+class Service(BaseModel, table=True):
+    name: str = Field(index=True)
+    description: Optional[str] = None
+    category: str = Field(default="geral")  # consultoria, instalação, suporte, etc
+    status: str = Field(default="ativo")    # ativo, inativo
+    
+    # Preços
+    price_base: float = Field(default=0.0)  # Preço base
+    price_hourly: Optional[float] = None    # Preço por hora (opcional)
+    
+    # Informações adicionais
+    duration_type: Optional[str] = None     # horaria, diaria, projeto
+    notes: Optional[str] = None             # Observações

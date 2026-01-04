@@ -177,8 +177,68 @@ export default function Layout({ onLogout }: LayoutProps) {
                     <UserCog size={18} /> Usuários
                   </Link>
                 )}
+                
+                <Link to="/products" className={`flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm transition-colors ${location.pathname === '/products' ? 'text-blue-700 font-semibold bg-blue-50' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
+                  <Briefcase size={18} /> Produtos
+                </Link>
+
+                <Link to="/services" className={`flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm transition-colors ${location.pathname === '/services' ? 'text-blue-700 font-semibold bg-blue-50' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
+                  <Briefcase size={18} /> Serviços
+                </Link>
+                
+                {/* Novos Itens - Em Desenvolvimento */}
+                <div className="opacity-50 cursor-not-allowed">
+                  <div className="flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm text-gray-400">
+                    <Users size={18} /> Fornecedores
+                    <span className="ml-auto text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded">Em breve</span>
+                  </div>
+                </div>
+                
+                <div className="opacity-50 cursor-not-allowed">
+                  <div className="flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm text-gray-400">
+                    <Users size={18} /> Funcionários
+                    <span className="ml-auto text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded">Em breve</span>
+                  </div>
+                </div>
+                
+                <div className="opacity-50 cursor-not-allowed">
+                  <div className="flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm text-gray-400">
+                    <Users size={18} /> Contas Financeiras
+                    <span className="ml-auto text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded">Em breve</span>
+                  </div>
+                </div>
+                
+                <div className="opacity-50 cursor-not-allowed">
+                  <div className="flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm text-gray-400">
+                    <Users size={18} /> Categorias Financeiras
+                    <span className="ml-auto text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded">Em breve</span>
+                  </div>
+                </div>
+                
+                <div className="opacity-50 cursor-not-allowed">
+                  <div className="flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm text-gray-400">
+                    <Users size={18} /> Formas de pagamento
+                    <span className="ml-auto text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded">Em breve</span>
+                  </div>
+                </div>
               </div>
             )}
+          </div>
+
+          {/* VENDAS / SERVIÇOS */}
+          <div className="opacity-50">
+            <div className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium text-gray-400 cursor-not-allowed">
+              <div className="flex items-center gap-3"><FolderPlus size={20} /> <span>Serviços</span></div>
+              <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded">Em breve</span>
+            </div>
+          </div>
+
+          {/* FINANCEIRO */}
+          <div className="opacity-50">
+            <div className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium text-gray-400 cursor-not-allowed">
+              <div className="flex items-center gap-3"><FolderPlus size={20} /> <span>Financeiro</span></div>
+              <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded">Em breve</span>
+            </div>
           </div>
 
           {userRole === 'admin' && (

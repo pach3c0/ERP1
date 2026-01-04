@@ -98,3 +98,61 @@ class CustomerRead(CustomerCreate):
     created_by_id: Optional[int]
     created_at: datetime
     updated_at: datetime
+
+# --- PRODUTOS PARA LOCAÇÃO ---
+class ProductCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: str = "geral"
+    status: str = "disponivel"
+    price_daily: float = 0.0
+    price_weekly: float = 0.0
+    price_monthly: float = 0.0
+    cost: float = 0.0
+    quantity: int = 1
+    serial_number: Optional[str] = None
+    notes: Optional[str] = None
+
+class ProductRead(ProductCreate):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    status: Optional[str] = None
+    price_daily: Optional[float] = None
+    price_weekly: Optional[float] = None
+    price_monthly: Optional[float] = None
+    cost: Optional[float] = None
+    quantity: Optional[int] = None
+    serial_number: Optional[str] = None
+    notes: Optional[str] = None
+
+# --- SERVIÇOS ---
+class ServiceCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: str = "geral"
+    status: str = "ativo"
+    price_base: float = 0.0
+    price_hourly: Optional[float] = None
+    duration_type: Optional[str] = None
+    notes: Optional[str] = None
+
+class ServiceRead(ServiceCreate):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+class ServiceUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    status: Optional[str] = None
+    price_base: Optional[float] = None
+    price_hourly: Optional[float] = None
+    duration_type: Optional[str] = None
+    notes: Optional[str] = None

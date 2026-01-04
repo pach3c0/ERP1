@@ -12,6 +12,20 @@ def log_activity(session: Session, user: User, content: str, icon: str = "activi
     )
     session.add(feed)
 
+def create_audit_log(session: Session, table_name: str, record_id: int, action: str, user_id: int, changes: Dict):
+    """
+    Cria um registro de auditoria no banco de dados.
+    """
+    audit = AuditLog(
+        table_name=table_name,
+        record_id=record_id,
+        action=action,
+        user_id=user_id,
+        changes=changes
+    )
+    session.add(audit)
+    session.commit()
+
 def register_audit(session: Session, user: User, obj: Any, new_data: Dict, table_name: str, action: str = "UPDATE"):
     """
     Compara o objeto atual (obj) com os novos dados (new_data)

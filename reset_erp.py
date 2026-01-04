@@ -63,6 +63,50 @@ CUSTOMERS_DATA = [
     }
 ]
 
+# 4. Dados dos Produtos
+PRODUCTS_DATA = [
+    {
+        "name": "Parafuso M8 Inox",
+        "description": "Parafuso de aço inoxidável M8x30mm, ideal para fixações em ambientes úmidos",
+        "price_daily": 0.50,
+        "price_weekly": 2.50,
+        "price_monthly": 8.00,
+        "quantity": 1000,
+        "serial_number": "PAR-M8-001",
+        "status": "ativo"
+    },
+    {
+        "name": "Rebite de Alumínio",
+        "description": "Rebite de alumínio 3.2x8mm para fixação permanente",
+        "price_daily": 0.30,
+        "price_weekly": 1.50,
+        "price_monthly": 5.00,
+        "quantity": 500,
+        "serial_number": "REB-AL-001",
+        "status": "ativo"
+    }
+]
+
+# 5. Dados dos Serviços
+SERVICES_DATA = [
+    {
+        "name": "Consultoria de Construção",
+        "description": "Serviço de consultoria especializado em projetos de construção civil com avaliação de viabilidade",
+        "price_base": 500.00,
+        "price_hourly": 150.00,
+        "duration_type": "por_hora",
+        "status": "ativo"
+    },
+    {
+        "name": "Manutenção Preventiva",
+        "description": "Serviço de manutenção preventiva mensal para garantir funcionamento dos equipamentos",
+        "price_base": 300.00,
+        "price_hourly": 100.00,
+        "duration_type": "mensal",
+        "status": "ativo"
+    }
+]
+
 def run_command(command):
     print(f"🚀 Executando: {command}")
     result = subprocess.run(command, shell=True)
@@ -156,7 +200,57 @@ def seed_data():
                 "can_delete_customers": True,
                 "can_view_trash": True,
                 "can_restore_deleted": True,
-                "can_hard_delete": True
+                "can_hard_delete": True,
+                # Produtos - Visualização
+                "can_view_products": True,
+                "can_view_product_prices": True,
+                "can_view_products_full_data": True,
+                # Produtos - Criação
+                "can_create_products": True,
+                # Produtos - Edição Granular
+                "can_edit_product_basic": True,
+                "can_edit_product_prices": True,
+                "can_edit_product_status": True,
+                "can_edit_product_quantity": True,
+                # Produtos - Status
+                "can_change_product_status": True,
+                "product_require_approval": False,
+                # Produtos - Exclusão
+                "can_delete_products": True,
+                "can_soft_delete_products": True,
+                "can_hard_delete_products": True,
+                # Produtos - Exportação
+                "can_export_products": True,
+                "can_export_product_report": True,
+                "can_view_product_history": True,
+                "can_generate_product_analytics": True,
+                # Produtos - Ações em Massa
+                "can_bulk_edit_products": True,
+                "can_bulk_delete_products": True,
+                "can_bulk_import_products": True,
+                # Serviços - Visualização
+                "can_view_services": True,
+                "can_view_service_prices": True,
+                # Serviços - Criação
+                "can_create_services": True,
+                # Serviços - Edição Granular
+                "can_edit_service_basic": True,
+                "can_edit_service_prices": True,
+                "can_edit_service_status": True,
+                # Serviços - Status
+                "can_change_service_status": True,
+                "service_require_approval": False,
+                # Serviços - Exclusão
+                "can_delete_services": True,
+                "can_soft_delete_services": True,
+                "can_hard_delete_services": True,
+                # Serviços - Exportação
+                "can_export_services": True,
+                "can_export_service_report": True,
+                "can_view_service_history": True,
+                # Serviços - Ações em Massa
+                "can_bulk_edit_services": True,
+                "can_bulk_delete_services": True
             })
         elif role['slug'] == 'manager':
             # Gerente: Quase todas, exceto hard delete
@@ -189,14 +283,64 @@ def seed_data():
                 # Exclusão
                 "can_delete_customers": True,
                 "can_view_trash": True,
-                "can_restore_deleted": False,  # Apenas admin restaura
-                "can_hard_delete": False       # Apenas admin hard delete
+                "can_restore_deleted": False,
+                "can_hard_delete": False,
+                # Produtos - Visualização
+                "can_view_products": True,
+                "can_view_product_prices": True,
+                "can_view_products_full_data": True,
+                # Produtos - Criação
+                "can_create_products": True,
+                # Produtos - Edição Granular
+                "can_edit_product_basic": True,
+                "can_edit_product_prices": True,
+                "can_edit_product_status": True,
+                "can_edit_product_quantity": True,
+                # Produtos - Status
+                "can_change_product_status": True,
+                "product_require_approval": False,
+                # Produtos - Exclusão
+                "can_delete_products": False,
+                "can_soft_delete_products": True,
+                "can_hard_delete_products": False,
+                # Produtos - Exportação
+                "can_export_products": True,
+                "can_export_product_report": True,
+                "can_view_product_history": True,
+                "can_generate_product_analytics": True,
+                # Produtos - Ações em Massa
+                "can_bulk_edit_products": True,
+                "can_bulk_delete_products": False,
+                "can_bulk_import_products": True,
+                # Serviços - Visualização
+                "can_view_services": True,
+                "can_view_service_prices": True,
+                # Serviços - Criação
+                "can_create_services": True,
+                # Serviços - Edição Granular
+                "can_edit_service_basic": True,
+                "can_edit_service_prices": True,
+                "can_edit_service_status": True,
+                # Serviços - Status
+                "can_change_service_status": True,
+                "service_require_approval": False,
+                # Serviços - Exclusão
+                "can_delete_services": False,
+                "can_soft_delete_services": True,
+                "can_hard_delete_services": False,
+                # Serviços - Exportação
+                "can_export_services": True,
+                "can_export_service_report": True,
+                "can_view_service_history": True,
+                # Serviços - Ações em Massa
+                "can_bulk_edit_services": True,
+                "can_bulk_delete_services": False
             })
         elif role['slug'] == 'sales':
             # Vendedor: Permissões restritas (perfil vendedor_restrito)
             role['permissions'].update({
                 # Visualização
-                "can_view_all_customers": False,  # Vê só os seus
+                "can_view_all_customers": False,
                 "can_view_others_customers": False,
                 "can_access_crm": True,
                 "can_view_financial_data": False,
@@ -209,7 +353,7 @@ def seed_data():
                 "can_transfer_customers": False,
                 # Status e Aprovação
                 "customer_change_status": False,
-                "customer_require_approval": True,  # Cadastros vão para aprovação
+                "customer_require_approval": True,
                 # Exportação
                 "can_generate_report": False,
                 "can_export_excel": False,
@@ -218,13 +362,63 @@ def seed_data():
                 "can_add_notes": True,
                 "can_add_tasks": True,
                 "can_complete_tasks": True,
-                "can_edit_notes": True,    # Pode editar suas próprias
+                "can_edit_notes": True,
                 "can_delete_notes": False,
                 # Exclusão
                 "can_delete_customers": False,
                 "can_view_trash": False,
                 "can_restore_deleted": False,
-                "can_hard_delete": False
+                "can_hard_delete": False,
+                # Produtos - Visualização
+                "can_view_products": True,
+                "can_view_product_prices": False,
+                "can_view_products_full_data": False,
+                # Produtos - Criação
+                "can_create_products": False,
+                # Produtos - Edição Granular
+                "can_edit_product_basic": False,
+                "can_edit_product_prices": False,
+                "can_edit_product_status": False,
+                "can_edit_product_quantity": False,
+                # Produtos - Status
+                "can_change_product_status": False,
+                "product_require_approval": False,
+                # Produtos - Exclusão
+                "can_delete_products": False,
+                "can_soft_delete_products": False,
+                "can_hard_delete_products": False,
+                # Produtos - Exportação
+                "can_export_products": False,
+                "can_export_product_report": False,
+                "can_view_product_history": False,
+                "can_generate_product_analytics": False,
+                # Produtos - Ações em Massa
+                "can_bulk_edit_products": False,
+                "can_bulk_delete_products": False,
+                "can_bulk_import_products": False,
+                # Serviços - Visualização
+                "can_view_services": True,
+                "can_view_service_prices": False,
+                # Serviços - Criação
+                "can_create_services": False,
+                # Serviços - Edição Granular
+                "can_edit_service_basic": False,
+                "can_edit_service_prices": False,
+                "can_edit_service_status": False,
+                # Serviços - Status
+                "can_change_service_status": False,
+                "service_require_approval": False,
+                # Serviços - Exclusão
+                "can_delete_services": False,
+                "can_soft_delete_services": False,
+                "can_hard_delete_services": False,
+                # Serviços - Exportação
+                "can_export_services": False,
+                "can_export_service_report": False,
+                "can_view_service_history": False,
+                # Serviços - Ações em Massa
+                "can_bulk_edit_services": False,
+                "can_bulk_delete_services": False
             })
         
         requests.put(f"{API_URL}/roles/{role['id']}/permissions", json={"permissions": role['permissions']}, headers=headers)
@@ -281,6 +475,44 @@ def seed_data():
         else:
             # Se houver erro, exibe o detalhe do Pydantic (ajuda no debug)
             print(f"   ⚠️ Erro no cliente {customer['name']}: {r.text}")
+
+    # 6. Criar PRODUTOS
+    print("   📦 Cadastrando Produtos iniciais...")
+    for product in PRODUCTS_DATA:
+        payload = {
+            "name": product["name"],
+            "description": product["description"],
+            "price_daily": product["price_daily"],
+            "price_weekly": product["price_weekly"],
+            "price_monthly": product["price_monthly"],
+            "quantity": product["quantity"],
+            "serial_number": product["serial_number"],
+            "status": product["status"]
+        }
+        
+        r = requests.post(f"{API_URL}/products/", json=payload, headers=headers)
+        if r.status_code == 200:
+            print(f"   ✅ Produto criado: {product['name']}")
+        else:
+            print(f"   ⚠️ Erro ao criar produto {product['name']}: {r.text}")
+
+    # 7. Criar SERVIÇOS
+    print("   🔧 Cadastrando Serviços iniciais...")
+    for service in SERVICES_DATA:
+        payload = {
+            "name": service["name"],
+            "description": service["description"],
+            "price_base": service["price_base"],
+            "price_hourly": service["price_hourly"],
+            "duration_type": service["duration_type"],
+            "status": service["status"]
+        }
+        
+        r = requests.post(f"{API_URL}/services/", json=payload, headers=headers)
+        if r.status_code == 200:
+            print(f"   ✅ Serviço criado: {service['name']}")
+        else:
+            print(f"   ⚠️ Erro ao criar serviço {service['name']}: {r.text}")
 
 def main():
     print("=========================================")
