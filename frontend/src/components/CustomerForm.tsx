@@ -20,6 +20,11 @@ interface CustomerNote {
   created_at: string;
   user_name: string;
   type: string;
+  task_status?: string;
+  target_user_id?: number;
+  read_at?: string;
+  started_at?: string;
+  completed_at?: string;
 }
 
 interface FormSectionProps {
@@ -128,17 +133,14 @@ export default function CustomerForm() {
   const loadUser = useCallback(async () => {
     if (!id) return;
     try {
-      const { data } = await api.get('/customers/'); 
-      const found = data.find((c: { id: number }) => c.id === Number(id));
-      if (found) {
-        setFormData(found);
-        setIsVerified(true);
-      }
+      const { data } = await api.get(`/customers/${id}`); 
+      setFormData(data);
+      setIsVerified(true);
     } catch (error) {
       console.error('Erro ao carregar cliente:', error);
-      navigate('/customers');
+      alert('Erro ao carregar cliente. Verifique se você tem permissão.');
     }
-  }, [id, navigate]);
+  }, [id]);
 
   useEffect(() => {
     loadMetaData();
@@ -333,6 +335,17 @@ export default function CustomerForm() {
         alert("Erro ao enviar."); 
       }
   };
+
+  const handleTaskAction = async (noteId: number, action: 'start' | 'complete' | 'reopen') => {
+    try {
+      await api.patch(`/customers/${id}/notes/${noteId}/task`, { action });
+      loadNotes();
+    } catch (error) {
+      console.error('Erro ao atualizar tarefa:', error);
+      alert('Erro ao atualizar tarefa.');
+    }
+  };
+
   const getUserName = (id: number) => users.find(u => u.id === id)?.name || '-';
 
   const isPF = formData.person_type === 'fisica';
@@ -473,42 +486,128 @@ export default function CustomerForm() {
           <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="bg-gray-50 border-b border-gray-100 p-4"><h3 className="font-bold text-gray-700 flex items-center gap-2"><MessageSquare size={18}/> Linha do Tempo</h3></div>
               <div className="p-6">
-                  <form onSubmit={handleAddNote} className="mb-8 flex gap-2 relative">
-                      <div className="flex-1 relative">
-                          <input
-                            ref={inputRef}
-                            type="text"
-                            placeholder="Digite uma mensagem... Use @ para mencionar"
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-indigo-500"
-                            value={newNote}
-                            onChange={handleNoteChange}
-                            onKeyDown={handleKeyDown}
-                          />
-                          {showMentions && (
-                            <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto">
-                              {users.filter(u => u.name.toLowerCase().includes(mentionQuery.toLowerCase())).map((user, index) => (
-                                <div
-                                  key={user.id}
-                                  className={`px-4 py-2 cursor-pointer hover:bg-gray-50 ${index === mentionIndex ? 'bg-indigo-50' : ''}`}
-                                  onClick={() => handleMentionSelect(user.name)}
-                                >
-                                  <span className="font-medium">{user.name}</span>
-                                  <span className="text-gray-500 text-sm ml-2">@{user.name.toLowerCase().replace(/\s+/g, '')}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                  <form onSubmit={handleAddNote} className="mb-8">
+                      <div className="flex gap-2 mb-3">
+                          <button
+                            type="button"
+                            onClick={() => setNoteType('message')}
+                            className={`px-4 py-2 rounded-lg font-medium transition ${noteType === 'message' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          >
+                            💬 Mensagem
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setNoteType('task')}
+                            className={`px-4 py-2 rounded-lg font-medium transition ${noteType === 'task' ? 'bg-amber-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          >
+                            ✓ Tarefa
+                          </button>
                       </div>
-                      <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 rounded-lg flex items-center gap-2"><Send size={18}/> Enviar</button>
+
+                      {noteType === 'task' && (
+                        <div className="mb-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Atribuir para:</label>
+                          <select
+                            value={targetUserId || ''}
+                            onChange={(e) => setTargetUserId(e.target.value ? Number(e.target.value) : null)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                          >
+                            <option value="">Selecione um usuário</option>
+                            {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                          </select>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 relative">
+                          <div className="flex-1 relative">
+                              <input
+                                ref={inputRef}
+                                type="text"
+                                placeholder={noteType === 'task' ? "Descreva a tarefa..." : "Digite uma mensagem... Use @ para mencionar"}
+                                className="w-full px-4 py-3 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-indigo-500"
+                                value={newNote}
+                                onChange={handleNoteChange}
+                                onKeyDown={handleKeyDown}
+                              />
+                              {showMentions && (
+                                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-40 overflow-y-auto mt-1">
+                                  {users.filter(u => u.name.toLowerCase().includes(mentionQuery.toLowerCase())).map((user, index) => (
+                                    <div
+                                      key={user.id}
+                                      className={`px-4 py-2 cursor-pointer hover:bg-gray-50 ${index === mentionIndex ? 'bg-indigo-50' : ''}`}
+                                      onClick={() => handleMentionSelect(user.name)}
+                                    >
+                                      <span className="font-medium">{user.name}</span>
+                                      <span className="text-gray-500 text-sm ml-2">@{user.name.toLowerCase().replace(/\s+/g, '')}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                          </div>
+                          <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 rounded-lg flex items-center gap-2"><Send size={18}/> Enviar</button>
+                      </div>
                   </form>
-                  <div className="space-y-6">
+
+                  <div className="space-y-4">
                       {notes.map(note => (
-                          <div key={note.id} className="border-l-2 border-indigo-100 pl-4 py-1">
-                              <div className="flex justify-between items-start mb-1 text-xs">
-                                  <span className="font-bold text-indigo-600">{note.user_name}</span>
-                                  <span className="text-gray-400">{new Date(note.created_at).toLocaleString()}</span>
+                          <div key={note.id} className={`border-l-4 pl-4 py-3 rounded-r-lg ${note.type === 'task' ? 'border-amber-400 bg-amber-50' : 'border-indigo-200 bg-indigo-50'}`}>
+                              <div className="flex justify-between items-start mb-2">
+                                  <div className="flex items-center gap-2">
+                                      <span className="font-bold text-gray-800">{note.user_name}</span>
+                                      {note.type === 'task' && (
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                          note.task_status === 'completed' ? 'bg-green-100 text-green-700' :
+                                          note.task_status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                                          'bg-gray-100 text-gray-700'
+                                        }`}>
+                                          {note.task_status === 'completed' ? '✓ Concluída' :
+                                           note.task_status === 'in_progress' ? '▶ Em Progresso' :
+                                           '○ Pendente'}
+                                        </span>
+                                      )}
+                                      {note.target_user_id && (
+                                        <span className="text-xs text-gray-600">→ {getUserName(note.target_user_id)}</span>
+                                      )}
+                                  </div>
+                                  <span className="text-gray-400 text-xs">{new Date(note.created_at).toLocaleString()}</span>
                               </div>
-                              <p className="text-gray-700 text-sm">{note.content}</p>
+                              <p className="text-gray-700 text-sm mb-2">{note.content}</p>
+                              
+                              {note.type === 'task' && (
+                                <div className="flex gap-2 mt-3">
+                                  {note.task_status === 'pending' && (
+                                    <button
+                                      onClick={() => handleTaskAction(note.id, 'start')}
+                                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg transition"
+                                    >
+                                      ▶ Iniciar
+                                    </button>
+                                  )}
+                                  {note.task_status === 'in_progress' && (
+                                    <button
+                                      onClick={() => handleTaskAction(note.id, 'complete')}
+                                      className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg transition"
+                                    >
+                                      ✓ Concluir
+                                    </button>
+                                  )}
+                                  {note.task_status === 'completed' && (
+                                    <button
+                                      onClick={() => handleTaskAction(note.id, 'reopen')}
+                                      className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded-lg transition"
+                                    >
+                                      ↻ Reabrir
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
+                              {(note.started_at || note.completed_at) && (
+                                <div className="mt-2 text-xs text-gray-500 space-y-1">
+                                  {note.started_at && <div>Iniciada: {new Date(note.started_at).toLocaleString()}</div>}
+                                  {note.completed_at && <div>Concluída: {new Date(note.completed_at).toLocaleString()}</div>}
+                                </div>
+                              )}
                           </div>
                       ))}
                   </div>

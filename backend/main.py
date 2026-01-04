@@ -14,9 +14,40 @@ def create_default_roles():
     try:
         with Session(engine) as session:
             roles = [
-                {"name": "Super Admin", "slug": "admin", "description": "Acesso total", "permissions": {"all": True, "customer_change_status": True, "customer_require_approval": False}},
-                {"name": "Gerente", "slug": "manager", "description": "Gestão", "permissions": {"customer_change_status": True, "customer_require_approval": False}},
-                {"name": "Vendedor", "slug": "sales", "description": "Vendas", "permissions": {"customer_change_status": False, "customer_require_approval": True}}
+                {
+                    "name": "Super Admin", 
+                    "slug": "admin", 
+                    "description": "Acesso total", 
+                    "permissions": {
+                        "all": True, 
+                        "customer_change_status": True, 
+                        "customer_require_approval": False,
+                        "can_edit_own_customers": True,
+                        "can_edit_others_customers": True
+                    }
+                },
+                {
+                    "name": "Gerente", 
+                    "slug": "manager", 
+                    "description": "Gestão", 
+                    "permissions": {
+                        "customer_change_status": True, 
+                        "customer_require_approval": False,
+                        "can_edit_own_customers": True,
+                        "can_edit_others_customers": True
+                    }
+                },
+                {
+                    "name": "Vendedor", 
+                    "slug": "sales", 
+                    "description": "Vendas", 
+                    "permissions": {
+                        "customer_change_status": False, 
+                        "customer_require_approval": True,
+                        "can_edit_own_customers": True,
+                        "can_edit_others_customers": False
+                    }
+                }
             ]
             for role_data in roles:
                 role = session.exec(select(Role).where(Role.slug == role_data["slug"])).first()
@@ -25,7 +56,7 @@ def create_default_roles():
                     session.add(Role(**role_data))
                 else:
                     # Atualiza permissões se necessário
-                    if not role.permissions:
+                    if not role.permissions or "can_edit_own_customers" not in role.permissions:
                         role.permissions = role_data["permissions"]
                         session.add(role)
             session.commit()

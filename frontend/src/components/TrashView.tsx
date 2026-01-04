@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import {
   ArrowLeft, Search, User, Building2,
-  RotateCcw, Trash2, AlertTriangle
+  RotateCcw, Trash2, AlertTriangle, History
 } from 'lucide-react';
 
 interface Customer {
@@ -30,6 +30,10 @@ export default function TrashView() {
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const userRole = localStorage.getItem('role')?.toLowerCase() || 'visitante';
+  const [auditCustomerId, setAuditCustomerId] = useState<number | null>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -52,6 +56,19 @@ export default function TrashView() {
 
   const getSalespersonName = (id: number) => {
     return users.find(u => u.id === id)?.name || 'N/A';
+  };
+
+  const handleViewAudit = async (customerId: number) => {
+    setAuditLoading(true);
+    try {
+      const response = await api.get(`/audit/customer/${customerId}`);
+      setAuditLogs(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar auditoria', error);
+      setAuditLogs([]);
+    } finally {
+      setAuditLoading(false);
+    }
   };
 
   const handleRestore = async (customerId: number, customerName: string) => {
@@ -169,20 +186,34 @@ export default function TrashView() {
                   <td className="px-6 py-4 text-sm text-gray-600">{formatDate(customer.created_at)}</td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleRestore(customer.id, customer.name)}
-                        className="p-2 hover:bg-green-50 text-green-600 hover:text-green-700 rounded-full transition"
-                        title="Restaurar cliente"
-                      >
-                        <RotateCcw size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleHardDelete(customer.id, customer.name)}
-                        className="p-2 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-full transition"
-                        title="Excluir definitivamente"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {userRole === 'admin' && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setAuditCustomerId(customer.id);
+                              handleViewAudit(customer.id);
+                            }}
+                            className="p-2 hover:bg-blue-50 text-blue-600 hover:text-blue-700 rounded-full transition"
+                            title="Ver auditoria"
+                          >
+                            <History size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleRestore(customer.id, customer.name)}
+                            className="p-2 hover:bg-green-50 text-green-600 hover:text-green-700 rounded-full transition"
+                            title="Restaurar cliente"
+                          >
+                            <RotateCcw size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleHardDelete(customer.id, customer.name)}
+                            className="p-2 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-full transition"
+                            title="Excluir definitivamente"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -191,6 +222,78 @@ export default function TrashView() {
           </table>
         </div>
       </div>
+
+      {/* MODAL DE AUDITORIA */}
+      {auditCustomerId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <History size={24} className="text-blue-600" />
+                Histórico de Auditoria
+              </h2>
+              <button
+                onClick={() => {
+                  setAuditCustomerId(null);
+                  setAuditLogs([]);
+                }}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {auditLoading ? (
+              <div className="text-center py-8 text-gray-400">Carregando...</div>
+            ) : auditLogs.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">Nenhum registro de auditoria encontrado</div>
+            ) : (
+              <div className="space-y-3">
+                {auditLogs.map((log: any, idx: number) => (
+                  <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <span className={`px-2 py-1 rounded text-xs font-bold text-white ${
+                          log.action === 'SOFT_DELETE' ? 'bg-red-500' :
+                          log.action === 'RESTORE' ? 'bg-green-500' :
+                          log.action === 'HARD_DELETE' ? 'bg-red-700' :
+                          'bg-gray-500'
+                        }`}>
+                          {log.action}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {new Date(log.created_at).toLocaleDateString('pt-BR')} {new Date(log.created_at).toLocaleTimeString('pt-BR')}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-700"><strong>Usuário:</strong> {log.user_name || 'Sistema'}</p>
+                    {log.changes && (
+                      <div className="text-sm text-gray-600 mt-2">
+                        <strong>Alterações:</strong>
+                        <pre className="bg-gray-100 p-2 rounded text-xs mt-1 overflow-auto">
+                          {JSON.stringify(log.changes, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setAuditCustomerId(null);
+                  setAuditLogs([]);
+                }}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

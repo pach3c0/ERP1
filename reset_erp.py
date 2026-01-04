@@ -121,13 +121,111 @@ def seed_data():
     roles_json = r.json()
     roles_map = {role['slug']: role['id'] for role in roles_json}
     
-    # --- NOVO: ATUALIZAR PERMISSÕES DOS CARGOS PARA EVITAR BLOQUEIOS ---
-    # Garante que as novas chaves de edição existam no banco resetado
+    # --- SISTEMA DE PERMISSÕES GRANULARES ---
+    # Configuração completa de todas as permissões por cargo
     for role in roles_json:
-        if role['slug'] in ['admin', 'manager']:
-            role['permissions'].update({"can_edit_own_customers": True, "can_edit_others_customers": True})
+        if role['slug'] == 'admin':
+            # Admin: Todas as permissões
+            role['permissions'].update({
+                # Visualização
+                "can_view_all_customers": True,
+                "can_view_others_customers": True,
+                "can_access_crm": True,
+                "can_view_financial_data": True,
+                "can_view_audit": True,
+                # Criação e Edição
+                "can_create_customers": True,
+                "can_edit_own_customers": True,
+                "can_edit_others_customers": True,
+                "can_edit_financial_data": True,
+                "can_transfer_customers": True,
+                # Status e Aprovação
+                "customer_change_status": True,
+                "customer_require_approval": False,
+                # Exportação
+                "can_generate_report": True,
+                "can_export_excel": True,
+                "can_bulk_import": True,
+                # Timeline/CRM
+                "can_add_notes": True,
+                "can_add_tasks": True,
+                "can_complete_tasks": True,
+                "can_edit_notes": True,
+                "can_delete_notes": True,
+                # Exclusão
+                "can_delete_customers": True,
+                "can_view_trash": True,
+                "can_restore_deleted": True,
+                "can_hard_delete": True
+            })
+        elif role['slug'] == 'manager':
+            # Gerente: Quase todas, exceto hard delete
+            role['permissions'].update({
+                # Visualização
+                "can_view_all_customers": True,
+                "can_view_others_customers": True,
+                "can_access_crm": True,
+                "can_view_financial_data": True,
+                "can_view_audit": True,
+                # Criação e Edição
+                "can_create_customers": True,
+                "can_edit_own_customers": True,
+                "can_edit_others_customers": True,
+                "can_edit_financial_data": True,
+                "can_transfer_customers": True,
+                # Status e Aprovação
+                "customer_change_status": True,
+                "customer_require_approval": False,
+                # Exportação
+                "can_generate_report": True,
+                "can_export_excel": True,
+                "can_bulk_import": True,
+                # Timeline/CRM
+                "can_add_notes": True,
+                "can_add_tasks": True,
+                "can_complete_tasks": True,
+                "can_edit_notes": True,
+                "can_delete_notes": True,
+                # Exclusão
+                "can_delete_customers": True,
+                "can_view_trash": True,
+                "can_restore_deleted": False,  # Apenas admin restaura
+                "can_hard_delete": False       # Apenas admin hard delete
+            })
         elif role['slug'] == 'sales':
-            role['permissions'].update({"can_edit_own_customers": True, "can_edit_others_customers": False})
+            # Vendedor: Permissões restritas (perfil vendedor_restrito)
+            role['permissions'].update({
+                # Visualização
+                "can_view_all_customers": False,  # Vê só os seus
+                "can_view_others_customers": False,
+                "can_access_crm": True,
+                "can_view_financial_data": False,
+                "can_view_audit": False,
+                # Criação e Edição
+                "can_create_customers": True,
+                "can_edit_own_customers": True,
+                "can_edit_others_customers": False,
+                "can_edit_financial_data": False,
+                "can_transfer_customers": False,
+                # Status e Aprovação
+                "customer_change_status": False,
+                "customer_require_approval": True,  # Cadastros vão para aprovação
+                # Exportação
+                "can_generate_report": False,
+                "can_export_excel": False,
+                "can_bulk_import": False,
+                # Timeline/CRM
+                "can_add_notes": True,
+                "can_add_tasks": True,
+                "can_complete_tasks": True,
+                "can_edit_notes": True,    # Pode editar suas próprias
+                "can_delete_notes": False,
+                # Exclusão
+                "can_delete_customers": False,
+                "can_view_trash": False,
+                "can_restore_deleted": False,
+                "can_hard_delete": False
+            })
         
         requests.put(f"{API_URL}/roles/{role['id']}/permissions", json={"permissions": role['permissions']}, headers=headers)
 

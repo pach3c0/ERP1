@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { 
   Plus, Search, User, Building2, 
-  MoreVertical, Filter, History, UserSearch, Trash2, Printer, CheckCircle2
+  MoreVertical, Filter, History, UserSearch, Trash2, Printer, CheckCircle2, X
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Customer {
   id: number;
@@ -30,21 +32,52 @@ export default function CustomerList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   
-  // ITEM 5: Seleção em massa
+  // Paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const itemsPerPage = 25;
+  
+  // Seleção em massa
   const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
+  
+  // Modal de Status
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [targetStatus, setTargetStatus] = useState('ativo');
+  const [processingBulk, setProcessingBulk] = useState(false);
   const userRole = localStorage.getItem('role')?.toLowerCase() || 'visitante';
+  
+  // Permissões
+  const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({
+    can_generate_report: false,
+    can_change_status: false,
+    can_delete_customers: false
+  });
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentPage]);
 
   const fetchData = async () => {
     try {
-      const [custRes, usersRes] = await Promise.all([
-        api.get('/customers/'),
-        api.get('/users/')
+      const skip = (currentPage - 1) * itemsPerPage;
+      const [custRes, usersRes, rolesRes] = await Promise.all([
+        api.get(`/customers/?skip=${skip}&limit=${itemsPerPage}`),
+        api.get('/users/'),
+        api.get('/roles/')
       ]);
-      setCustomers(custRes.data);
+      
+      // Buscar permissões do usuário atual
+      const myRole = rolesRes.data.find((r: any) => r.slug === userRole);
+      if (myRole?.permissions) {
+        setUserPermissions({
+          can_generate_report: myRole.permissions.can_generate_report === true,
+          can_change_status: myRole.permissions.can_change_status === true,
+          can_delete_customers: myRole.permissions.can_delete_customers === true
+        });
+      }
+      
+      setCustomers(custRes.data.items || custRes.data);
+      setTotalCustomers(custRes.data.total || custRes.data.length);
       setUsers(usersRes.data);
     } catch (error) {
       console.error("Erro ao carregar dados", error);
@@ -72,14 +105,67 @@ export default function CustomerList() {
     }
   };
 
+  // --- RELATÓRIO PDF ---
   const handleBulkReport = () => {
-    // TODO: Implementar geração de relatório
-    alert(`Gerar relatório para ${selectedCustomers.length} clientes selecionados: ${selectedCustomers.join(', ')}`);
+    const doc = new jsPDF();
+
+    // Filtra apenas os clientes selecionados
+    const reportData = customers.filter(c => selectedCustomers.includes(c.id));
+    
+    doc.setFontSize(16);
+    doc.text(`Relatório de Clientes (${reportData.length})`, 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Gerado em: ${new Date().toLocaleString()}`, 14, 22);
+
+    const tableColumn = ["Nome", "Documento", "Cidade/UF", "Vendedor", "Status"];
+    const tableRows = reportData.map(c => [
+      c.name,
+      c.document,
+      `${c.city}/${c.state}`,
+      getSalespersonName(c.salesperson_id),
+      c.status.toUpperCase()
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+    });
+
+    doc.save(`clientes_relatorio_${new Date().toISOString().slice(0,10)}.pdf`);
   };
 
-  const handleBulkStatus = () => {
-    // TODO: Implementar mudança de status em massa
-    alert(`Alterar status para ${selectedCustomers.length} clientes selecionados: ${selectedCustomers.join(', ')}`);
+  // --- ALTERAÇÃO DE STATUS EM MASSA ---
+  const openStatusModal = () => {
+    setIsStatusModalOpen(true);
+  };
+
+  const confirmBulkStatusChange = async () => {
+    if (!targetStatus) return;
+    setProcessingBulk(true);
+
+    try {
+      // Executa as requisições em paralelo usando a nova rota PATCH
+      await Promise.all(
+        selectedCustomers.map(id => 
+          api.patch(`/customers/${id}/status`, { status: targetStatus })
+        )
+      );
+
+      // Atualiza a lista localmente para refletir a mudança sem recarregar tudo
+      setCustomers(prev => prev.map(c => 
+        selectedCustomers.includes(c.id) ? { ...c, status: targetStatus } : c
+      ));
+      
+      setSelectedCustomers([]);
+      setIsStatusModalOpen(false);
+      alert('Status atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar status em massa', error);
+      alert('Erro ao atualizar alguns registros. Verifique as permissões.');
+    } finally {
+      setProcessingBulk(false);
+    }
   };
 
   const handleBulkDelete = async () => {
@@ -120,7 +206,52 @@ export default function CustomerList() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 relative">
+      {/* --- MODAL DE STATUS --- */}
+      {isStatusModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-96 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Alterar Status em Massa</h3>
+              <button onClick={() => setIsStatusModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Selecione o novo status para os <strong>{selectedCustomers.length}</strong> clientes selecionados:
+            </p>
+
+            <select 
+              value={targetStatus}
+              onChange={(e) => setTargetStatus(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-lg mb-6 focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="ativo">Ativo</option>
+              <option value="pendente">Pendente</option>
+              <option value="inativo">Inativo</option>
+            </select>
+
+            <div className="flex gap-3 justify-end">
+              <button 
+                onClick={() => setIsStatusModalOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                disabled={processingBulk}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmBulkStatusChange}
+                disabled={processingBulk}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2"
+              >
+                {processingBulk ? 'Processando...' : 'Confirmar Alteração'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Clientes e Fornecedores</h1>
@@ -139,20 +270,24 @@ export default function CustomerList() {
         <div className="mb-4 bg-indigo-600 text-white p-3 rounded-xl flex items-center justify-between shadow-lg">
           <span className="font-bold ml-2">{selectedCustomers.length} selecionados</span>
           <div className="flex gap-2">
-            <button 
-              onClick={handleBulkReport}
-              className="px-3 py-1.5 hover:bg-indigo-700 rounded-lg flex items-center gap-1.5 text-sm transition"
-            >
-              <Printer size={16}/> Relatório
-            </button>
-            <button 
-              onClick={handleBulkStatus}
-              className="px-3 py-1.5 hover:bg-indigo-700 rounded-lg flex items-center gap-1.5 text-sm transition"
-            >
-              <CheckCircle2 size={16}/> Status
-            </button>
-            {/* ITEM 6: Somente Admin pode deletar */}
-            {userRole === 'admin' && (
+            {userPermissions.can_generate_report && (
+              <button 
+                onClick={handleBulkReport}
+                className="px-3 py-1.5 hover:bg-indigo-700 rounded-lg flex items-center gap-1.5 text-sm transition"
+              >
+                <Printer size={16}/> Relatório
+              </button>
+            )}
+            {userPermissions.can_change_status && (
+              <button 
+                onClick={openStatusModal}
+                className="px-3 py-1.5 hover:bg-indigo-700 rounded-lg flex items-center gap-1.5 text-sm transition"
+                title="Alterar Status"
+              >
+                <CheckCircle2 size={16}/> Status
+              </button>
+            )}
+            {userPermissions.can_delete_customers && (
               <button 
                 onClick={handleBulkDelete}
                 className="px-3 py-1.5 bg-red-500 hover:bg-red-600 rounded-lg flex items-center gap-1.5 text-sm transition"
@@ -207,8 +342,8 @@ export default function CustomerList() {
               {loading ? (
                 <tr><td colSpan={8} className="text-center py-10 text-gray-400">Carregando...</td></tr>
               ) : filteredCustomers.map(customer => (
-                <tr key={customer.id} className="hover:bg-gray-50 transition group" onClick={() => navigate(`/customers/${customer.id}`)}>
-                  <td className="px-6 py-4" onClick={(e) => handleSelectOne(e as any, customer.id)}>
+                <tr key={customer.id} className="hover:bg-gray-50 transition group cursor-pointer" onClick={() => navigate(`/customers/${customer.id}`)}>
+                  <td className="px-6 py-4" onClick={(e) => { e.stopPropagation(); handleSelectOne(e as any, customer.id); }}>
                     <input 
                       type="checkbox" 
                       checked={selectedCustomers.includes(customer.id)}
@@ -254,6 +389,56 @@ export default function CustomerList() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* PAGINAÇÃO */}
+        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50">
+          <div className="text-sm text-gray-600">
+            Mostrando <strong>{((currentPage - 1) * itemsPerPage) + 1}</strong> a <strong>{Math.min(currentPage * itemsPerPage, totalCustomers)}</strong> de <strong>{totalCustomers}</strong> clientes
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Anterior
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.ceil(totalCustomers / itemsPerPage) }, (_, i) => i + 1)
+                .filter(page => {
+                  const totalPages = Math.ceil(totalCustomers / itemsPerPage);
+                  return page === 1 || 
+                         page === totalPages || 
+                         (page >= currentPage - 1 && page <= currentPage + 1);
+                })
+                .map((page, idx, arr) => (
+                  <React.Fragment key={page}>
+                    {idx > 0 && arr[idx - 1] !== page - 1 && (
+                      <span className="px-2 text-gray-400">...</span>
+                    )}
+                    <button
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        currentPage === page 
+                          ? 'bg-indigo-600 text-white' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  </React.Fragment>
+                ))
+              }
+            </div>
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(Math.ceil(totalCustomers / itemsPerPage), prev + 1))}
+              disabled={currentPage === Math.ceil(totalCustomers / itemsPerPage)}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Próxima
+            </button>
+          </div>
         </div>
       </div>
     </div>

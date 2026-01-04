@@ -94,4 +94,7 @@ class CustomerCreate(BaseModel):
         else: raise ValueError('Documento inválido')
 
 class CustomerRead(CustomerCreate):
-    id: int; created_by_id: Optional[int]; created_at: datetime
+    id: int
+    created_by_id: Optional[int]
+    created_at: datetime
+    updated_at: datetime

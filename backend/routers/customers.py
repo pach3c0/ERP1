@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlmodel import Session, select
 from typing import List
 # Ajuste de importação: removido o prefixo 'backend.' pois o container já inicia nesta pasta
@@ -17,10 +17,43 @@ def create_customer(
     session: Session = Depends(get_session),
     current_user=Depends(get_current_user)
 ):
-    # Check permissions - for now, allow if user has role
-    # You can add more specific checks based on role permissions
+    # Verificar documento duplicado
+    existing = session.exec(select(Customer).where(Customer.document == customer_input.document)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Documento já cadastrado no sistema")
     
-    new_customer = Customer(**customer_input.dict())
+    # Verificar se o role do usuário exige aprovação para novos cadastros
+    role_permissions = current_user.role.permissions
+    require_approval = role_permissions.get("customer_require_approval", False)
+    
+    # Criar o cliente
+    customer_data = customer_input.dict()
+    
+    # Definir status baseado na permissão de aprovação
+    # Admin sempre cria como ativo, outros roles dependem da configuração
+    if current_user.role.slug == "admin":
+        # Admin não precisa de aprovação
+        customer_data["status"] = "ativo"
+    else:
+        # Para outros usuários, verificar a permissão
+        if require_approval:
+            customer_data["status"] = "pendente"
+        else:
+            customer_data["status"] = "ativo"
+    
+    # Admin DEVE ter um salesperson_id para poder gerenciar
+    if current_user.role.slug == "admin" and not customer_data.get("salesperson_id"):
+        # Se não fornecido, usar o próprio ID do admin (se tiver)
+        customer_data["salesperson_id"] = current_user.id
+    
+    # Garantir que todos os campos obrigatórios estão presentes
+    for field in ["status", "person_type", "name", "document"]:
+        if field not in customer_data or customer_data[field] is None:
+            raise HTTPException(status_code=400, detail=f"Campo obrigatório faltando: {field}")
+    
+    new_customer = Customer(**customer_data)
+    new_customer.created_by_id = current_user.id
+    
     session.add(new_customer)
     session.commit()
     session.refresh(new_customer)
@@ -31,7 +64,11 @@ def create_customer(
         record_id=new_customer.id,
         action="CREATE",
         user_id=current_user.id,
-        changes={"created": True}
+        changes={
+            "created": True, 
+            "status": new_customer.status,
+            "require_approval": require_approval
+        }
     )
     session.add(audit)
     session.commit()
@@ -95,8 +132,73 @@ def update_customer(
     
     return customer
 
-@router.get("/", response_model=List[CustomerRead])
+# [NOVO] Rota específica para alterar apenas o Status (Mais leve e segura para Bulk Actions)
+@router.patch("/{customer_id}/status", response_model=CustomerRead)
+def update_customer_status(
+    customer_id: int,
+    status: str = Body(..., embed=True), # Espera JSON: { "status": "novo_status" }
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user)
+):
+    customer = session.get(Customer, customer_id)
+    if not customer:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    # Verificação de permissão
+    role_slug = current_user.role.slug
+    role_permissions = current_user.role.permissions
+    can_change_status = role_permissions.get("customer_change_status", False)
+    
+    # Admin sempre pode alterar
+    if role_slug == "admin":
+        pass
+    # Para outros roles, verificar se tem a permissão específica
+    elif not can_change_status:
+        raise HTTPException(status_code=403, detail="Você não tem permissão para alterar status de clientes")
+    # Se tem permissão, verificar se é o dono do cliente
+    elif customer.salesperson_id != current_user.id:
+        # Manager pode alterar qualquer cliente
+        if role_slug != "manager":
+            raise HTTPException(status_code=403, detail="Você só pode alterar o status dos seus próprios clientes")
+
+    # Auditoria da mudança
+    old_status = customer.status
+    if old_status != status:
+        customer.status = status
+        session.add(customer)
+        
+        audit = AuditLog(
+            table_name="customer",
+            record_id=customer.id,
+            action="UPDATE_STATUS",
+            user_id=current_user.id,
+            changes={"status": {"old": old_status, "new": status}}
+        )
+        session.add(audit)
+        session.commit()
+        session.refresh(customer)
+        
+    return customer
+
+# [NOVO] Endpoint para verificar se documento já existe
+@router.get("/verify/{document}")
+def verify_document(
+    document: str,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user)
+):
+    """Verifica se um documento (CPF/CNPJ) já está cadastrado."""
+    statement = select(Customer).where(Customer.document == document)
+    existing = session.exec(statement).first()
+    
+    if existing:
+        return {"exists": True, "name": existing.name, "id": existing.id}
+    return {"exists": False}
+
+@router.get("/")
 def read_customers(
+    skip: int = 0,
+    limit: int = 25,
     session: Session = Depends(get_session),
     current_user=Depends(get_current_user)
 ):
@@ -107,7 +209,20 @@ def read_customers(
     if current_user.role.slug not in ["admin", "manager"]:
         statement = statement.where(Customer.salesperson_id == current_user.id)
     
-    return session.exec(statement).all()
+    # Conta total de registros (antes da paginação)
+    count_statement = statement.with_only_columns(Customer.id)
+    total = len(session.exec(count_statement).all())
+    
+    # Aplica paginação
+    statement = statement.offset(skip).limit(limit)
+    customers = session.exec(statement).all()
+    
+    return {
+        "items": customers,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
 
 @router.get("/trash", response_model=List[CustomerRead])
 def read_trash(
@@ -121,14 +236,35 @@ def read_trash(
     statement = select(Customer).where(Customer.status == "excluido")
     return session.exec(statement).all()
 
+@router.get("/{customer_id}", response_model=CustomerRead)
+def read_customer(
+    customer_id: int,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user)
+):
+    """Busca um cliente específico por ID."""
+    customer = session.get(Customer, customer_id)
+    if not customer:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    
+    # Verificar permissões: vendedor só pode ver seus próprios clientes
+    if current_user.role.slug not in ["admin", "manager"]:
+        if customer.salesperson_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Você não tem permissão para acessar este cliente")
+    
+    return customer
+
 @router.delete("/{customer_id}")
 def soft_delete_customer(
     customer_id: int,
     session: Session = Depends(get_session),
     current_user=Depends(get_current_user)
 ):
-    # ITEM 6: Somente Admin pode deletar
-    if current_user.role.slug != "admin":
+    # Verificar permissão can_delete_customers
+    role_permissions = current_user.role.permissions
+    can_delete = role_permissions.get("can_delete_customers", False)
+    
+    if current_user.role.slug != "admin" and not can_delete:
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     customer = session.get(Customer, customer_id)
@@ -339,3 +475,41 @@ async def create_customer_note(
         started_at=note.started_at,
         completed_at=note.completed_at
     )
+
+@router.patch("/{customer_id}/notes/{note_id}/task")
+async def update_task_status(
+    customer_id: int,
+    note_id: int,
+    action: str = Body(..., embed=True),
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user)
+):
+    """Atualiza o status de uma tarefa (start, complete, reopen)"""
+    # Verificar se a nota existe e é uma tarefa
+    note = session.get(CustomerNote, note_id)
+    if not note or note.customer_id != customer_id:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    
+    if note.type != "task":
+        raise HTTPException(status_code=400, detail="Esta nota não é uma tarefa")
+    
+    # Atualizar status baseado na ação
+    from datetime import datetime
+    
+    if action == "start":
+        note.task_status = "in_progress"
+        note.started_at = datetime.utcnow()
+    elif action == "complete":
+        note.task_status = "completed"
+        note.completed_at = datetime.utcnow()
+    elif action == "reopen":
+        note.task_status = "pending"
+        note.completed_at = None
+    else:
+        raise HTTPException(status_code=400, detail="Ação inválida")
+    
+    session.add(note)
+    session.commit()
+    session.refresh(note)
+    
+    return {"message": "Status atualizado com sucesso", "task_status": note.task_status}

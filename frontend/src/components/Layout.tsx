@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../api';
-import { 
-  LayoutDashboard, Users, LogOut, FolderPlus, 
+import {
+  LayoutDashboard, Users, LogOut, FolderPlus,
   ChevronDown, ChevronRight, UserCog, Settings, Bell,
-  Briefcase 
+  Briefcase
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -22,7 +22,7 @@ interface NotificationItem {
 export default function Layout({ onLogout }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  
+  const audioRef = useRef<HTMLAudioElement>(null); // Ref para o elemento de áudio
   const [isCadastrosOpen, setIsCadastrosOpen] = useState(true);
   const isCadastroActive = ['/customers', '/products', '/services', '/users'].includes(location.pathname);
 
@@ -39,66 +39,6 @@ export default function Layout({ onLogout }: LayoutProps) {
     'user': 'Usuário' 
   };
   const displayRole = roleNames[userRole] || userRole;
-
-  // --- FUNÇÃO PARA TOCAR SOM DE NOTIFICAÇÃO ---
-  const playNotificationSound = () => {
-    try {
-      // Criar um som de notificação agradável usando Web Audio API
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Criar dois osciladores para um som mais rico
-      const oscillator1 = audioContext.createOscillator();
-      const oscillator2 = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      // Conectar os osciladores ao gain node
-      oscillator1.connect(gainNode);
-      oscillator2.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      // Configurações do primeiro oscilador (tom principal)
-      oscillator1.frequency.setValueAtTime(800, audioContext.currentTime);
-      oscillator1.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
-      oscillator1.type = 'sine';
-      
-      // Configurações do segundo oscilador (harmônico)
-      oscillator2.frequency.setValueAtTime(1200, audioContext.currentTime);
-      oscillator2.frequency.exponentialRampToValueAtTime(900, audioContext.currentTime + 0.1);
-      oscillator2.type = 'sine';
-      
-      // Controle de volume com envelope ADSR simples
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.01); // Attack
-      gainNode.gain.exponentialRampToValueAtTime(0.05, audioContext.currentTime + 0.1); // Decay/Sustain
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.3); // Release
-      
-      // Tocar por 0.3 segundos
-      oscillator1.start(audioContext.currentTime);
-      oscillator2.start(audioContext.currentTime);
-      oscillator1.stop(audioContext.currentTime + 0.3);
-      oscillator2.stop(audioContext.currentTime + 0.3);
-      
-    } catch (error) {
-      console.warn('Web Audio API não suportada, tentando Notification API:', error);
-      // Fallback: tentar usar Notification API se disponível
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Nova notificação!', { 
-          silent: false,
-          icon: '/vite.svg' // Usar ícone do projeto
-        });
-      } else if ('Notification' in window && Notification.permission !== 'denied') {
-        // Solicitar permissão se ainda não foi negada
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            new Notification('Nova notificação!', { 
-              silent: false,
-              icon: '/vite.svg'
-            });
-          }
-        });
-      }
-    }
-  };
 
   // --- LÓGICA DE NOTIFICAÇÕES (WEBSOCKET ROBUSTO PRESERVADA) ---
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -134,7 +74,9 @@ export default function Layout({ onLogout }: LayoutProps) {
             ws.current.onmessage = (event: MessageEvent) => {
                 try {
                     const data = JSON.parse(event.data);
+                    console.log('📨 WS: Mensagem recebida:', data);
                     if (data.type === 'notification') {
+                        console.log('🔔 WS: Nova notificação recebida:', data.content);
                         const newNotif: NotificationItem = {
                             id: Date.now(),
                             content: data.content,
@@ -145,9 +87,17 @@ export default function Layout({ onLogout }: LayoutProps) {
                         setNotifications((prev) => [newNotif, ...prev]);
                         const customEvent = new CustomEvent('erp-notification', { detail: data });
                         window.dispatchEvent(customEvent);
-                        
-                        // Tocar som de notificação
-                        playNotificationSound();
+
+                        // Reproduzir som de notificação
+                        console.log('🔊 Tentando reproduzir som...');
+                        if (audioRef.current) {
+                            audioRef.current.currentTime = 0; // Reiniciar o áudio
+                            audioRef.current.play()
+                                .then(() => console.log('✅ Som reproduzido com sucesso'))
+                                .catch(err => console.log('❌ Erro ao reproduzir som:', err));
+                        } else {
+                            console.log('❌ audioRef.current é null');
+                        }
                     } else if (data.type === 'feed_update') {
                         console.log('📢 WS: Feed update recebido, disparando evento:', data);
                         const customEvent = new CustomEvent('erp-notification', { detail: data });
@@ -248,6 +198,9 @@ export default function Layout({ onLogout }: LayoutProps) {
 
       {/* ÁREA PRINCIPAL */}
       <main className="flex-1 flex flex-col bg-gray-50 min-w-0">
+        {/* Elemento de áudio para notificações */}
+        <audio ref={audioRef} src="/notification.mp3" preload="auto" />
+
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-8 shadow-sm z-10">
             <div className="relative">
                 <button 
