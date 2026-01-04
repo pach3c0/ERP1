@@ -9,6 +9,9 @@ import schemas
 from schemas import CustomerCreate, CustomerRead
 from connection_manager import manager
 
+# NOVO: Import do Service Layer
+from services.customer_service import CustomerService
+
 router = APIRouter(prefix="/customers", tags=["customers"])
 
 @router.post("/", response_model=CustomerRead)
@@ -17,62 +20,16 @@ def create_customer(
     session: Session = Depends(get_session),
     current_user=Depends(get_current_user)
 ):
-    # Verificar documento duplicado
-    existing = session.exec(select(Customer).where(Customer.document == customer_input.document)).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Documento já cadastrado no sistema")
-    
-    # Verificar se o role do usuário exige aprovação para novos cadastros
-    role_permissions = current_user.role.permissions
-    require_approval = role_permissions.get("customer_require_approval", False)
-    
-    # Criar o cliente
+    """
+    Cria um novo cliente usando o Service Layer.
+    Toda a lógica de negócio está em CustomerService.
+    """
     customer_data = customer_input.dict()
-    
-    # Definir status baseado na permissão de aprovação
-    # Admin sempre cria como ativo, outros roles dependem da configuração
-    if current_user.role.slug == "admin":
-        # Admin não precisa de aprovação
-        customer_data["status"] = "ativo"
-    else:
-        # Para outros usuários, verificar a permissão
-        if require_approval:
-            customer_data["status"] = "pendente"
-        else:
-            customer_data["status"] = "ativo"
-    
-    # Admin DEVE ter um salesperson_id para poder gerenciar
-    if current_user.role.slug == "admin" and not customer_data.get("salesperson_id"):
-        # Se não fornecido, usar o próprio ID do admin (se tiver)
-        customer_data["salesperson_id"] = current_user.id
-    
-    # Garantir que todos os campos obrigatórios estão presentes
-    for field in ["status", "person_type", "name", "document"]:
-        if field not in customer_data or customer_data[field] is None:
-            raise HTTPException(status_code=400, detail=f"Campo obrigatório faltando: {field}")
-    
-    new_customer = Customer(**customer_data)
-    new_customer.created_by_id = current_user.id
-    
-    session.add(new_customer)
-    session.commit()
-    session.refresh(new_customer)
-    
-    # Log de auditoria para criação
-    audit = AuditLog(
-        table_name="customer",
-        record_id=new_customer.id,
-        action="CREATE",
-        user_id=current_user.id,
-        changes={
-            "created": True, 
-            "status": new_customer.status,
-            "require_approval": require_approval
-        }
+    new_customer = CustomerService.create_customer(
+        session=session,
+        customer_data=customer_data,
+        current_user=current_user
     )
-    session.add(audit)
-    session.commit()
-    
     return new_customer
 
 @router.put("/{customer_id}", response_model=CustomerRead)
@@ -82,55 +39,21 @@ def update_customer(
     session: Session = Depends(get_session),
     current_user=Depends(get_current_user)
 ):
+    """
+    Atualiza um cliente existente usando o Service Layer.
+    """
     customer = session.get(Customer, customer_id)
     if not customer:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     
-    # Check permissions
-    role_permissions = current_user.role.permissions
-    can_edit_own = role_permissions.get("can_edit_own_customers", False)
-    can_edit_others = role_permissions.get("can_edit_others_customers", False)
-    
-    if current_user.role.slug == "admin":
-        # Admin can edit all
-        pass
-    elif can_edit_own and customer.salesperson_id == current_user.id:
-        # Can edit own customers
-        pass
-    elif can_edit_others:
-        # Can edit others' customers
-        pass
-    else:
-        raise HTTPException(status_code=403, detail="Você não tem permissão para editar este cliente")
-    
-    # Capturar valores antigos
-    old_values = {key: getattr(customer, key) for key in customer_input.dict().keys()}
-    
-    # Update the customer
-    changes = {}
-    for key, value in customer_input.dict().items():
-        old_value = getattr(customer, key)
-        if old_value != value:
-            changes[key] = {"old": old_value, "new": value}
-        setattr(customer, key, value)
-    
-    session.add(customer)
-    session.commit()
-    session.refresh(customer)
-    
-    # Log de auditoria para atualização, se houve mudanças
-    if changes:
-        audit = AuditLog(
-            table_name="customer",
-            record_id=customer.id,
-            action="UPDATE",
-            user_id=current_user.id,
-            changes=changes
-        )
-        session.add(audit)
-        session.commit()
-    
-    return customer
+    customer_data = customer_input.dict()
+    updated_customer = CustomerService.update_customer(
+        session=session,
+        customer=customer,
+        customer_data=customer_data,
+        current_user=current_user
+    )
+    return updated_customer
 
 # [NOVO] Rota específica para alterar apenas o Status (Mais leve e segura para Bulk Actions)
 @router.patch("/{customer_id}/status", response_model=CustomerRead)
@@ -140,45 +63,20 @@ def update_customer_status(
     session: Session = Depends(get_session),
     current_user=Depends(get_current_user)
 ):
+    """
+    Atualiza apenas o status do cliente usando o Service Layer.
+    """
     customer = session.get(Customer, customer_id)
     if not customer:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     
-    # Verificação de permissão
-    role_slug = current_user.role.slug
-    role_permissions = current_user.role.permissions
-    can_change_status = role_permissions.get("customer_change_status", False)
-    
-    # Admin sempre pode alterar
-    if role_slug == "admin":
-        pass
-    # Para outros roles, verificar se tem a permissão específica
-    elif not can_change_status:
-        raise HTTPException(status_code=403, detail="Você não tem permissão para alterar status de clientes")
-    # Se tem permissão, verificar se é o dono do cliente
-    elif customer.salesperson_id != current_user.id:
-        # Manager pode alterar qualquer cliente
-        if role_slug != "manager":
-            raise HTTPException(status_code=403, detail="Você só pode alterar o status dos seus próprios clientes")
-
-    # Auditoria da mudança
-    old_status = customer.status
-    if old_status != status:
-        customer.status = status
-        session.add(customer)
-        
-        audit = AuditLog(
-            table_name="customer",
-            record_id=customer.id,
-            action="UPDATE_STATUS",
-            user_id=current_user.id,
-            changes={"status": {"old": old_status, "new": status}}
-        )
-        session.add(audit)
-        session.commit()
-        session.refresh(customer)
-        
-    return customer
+    updated_customer = CustomerService.update_customer_status(
+        session=session,
+        customer=customer,
+        new_status=status,
+        current_user=current_user
+    )
+    return updated_customer
 
 # [NOVO] Endpoint para verificar se documento já existe
 @router.get("/verify/{document}")
@@ -188,8 +86,7 @@ def verify_document(
     current_user=Depends(get_current_user)
 ):
     """Verifica se um documento (CPF/CNPJ) já está cadastrado."""
-    statement = select(Customer).where(Customer.document == document)
-    existing = session.exec(statement).first()
+    existing = CustomerService.check_document_exists(session, document)
     
     if existing:
         return {"exists": True, "name": existing.name, "id": existing.id}

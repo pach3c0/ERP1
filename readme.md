@@ -5,6 +5,31 @@ Aqui está o seu `README.md` atualizado, com uma nova seção específica para o
 
 Um sistema ERP com funcionalidades de CRM avançado, focado em gestão de parceiros, controle de acesso granular (RBAC), matriz de supervisão e workflow de tarefas em tempo real.
 
+## 🎯 Novidades da Arquitetura (Janeiro/2026)
+
+**Transformação para Alta Escalabilidade:**
+
+### 🏗️ Service Layer
+Lógica de negócio agora está separada das rotas HTTP em classes de serviço reutilizáveis:
+- ✅ Mesmo código funciona em HTTP, WebSocket, Excel import e background tasks
+- ✅ Rotas HTTP reduziram de 60+ para 15 linhas
+- ✅ Testável isoladamente sem mockar requisições
+
+**Exemplo:** `CustomerService.create_customer()` pode ser usado em qualquer contexto.
+
+### 🔄 Alembic Migrations
+Sistema de versionamento de banco de dados profissional:
+- ✅ Adicione/remova colunas sem perder dados
+- ✅ Rollback automático se algo der errado
+- ✅ Histórico completo de mudanças no schema
+- ✅ Pronto para deploy em produção
+
+**Exemplo:** `alembic revision --autogenerate -m "add new field"`
+
+📖 **Leia:** [`ARCHITECTURE_ANALYSIS.md`](ARCHITECTURE_ANALYSIS.md) para entender todas as mudanças.
+
+---
+
 ## 🛠 Tech Stack
 
 * **Frontend:** React (Vite), Tailwind CSS, Lucide React (Ícones), Axios.
@@ -80,13 +105,23 @@ git push
 
 * [x] **Estabilização do WebSocket:** Resolvido o problema de delay/F5 nas notificações.
 * [x] **Login Docker:** Migração para `pbkdf2_sha256` concluída com sucesso.
+* [x] **Service Layer:** Arquitetura escalável com lógica de negócio separada (CustomerService).
+* [x] **Alembic:** Sistema de migrações de banco configurado e documentado.
 
 ### 📦 Fase 2: Gestão de Produtos & Serviços (EM FOCO 🎯)
 
+* [x] **Service Layer:** Lógica de negócio separada das rotas HTTP (✅ Implementado para Customers)
+* [x] **Alembic:** Sistema de migrações de banco de dados versionadas (✅ Configurado)
 * [ ] **Modelagem:** Criar tabelas `Product` e `Service` (SQLModel/Pydantic).
 * [ ] **Backend:** Criar rotas de CRUD para catálogo em `backend/routers/products.py`.
 * [ ] **Frontend:** Criar formulário moderno ("Single Page Scroll") para cadastro de itens.
 * [ ] **Tabelas de Preço:** Diferenciação por perfil de cliente.
+
+**📚 Documentação Técnica:**
+* [`SERVICE_LAYER_GUIDE.md`](SERVICE_LAYER_GUIDE.md) - Como usar a arquitetura de Services
+* [`ALEMBIC_GUIDE.md`](ALEMBIC_GUIDE.md) - Como fazer migrações de banco
+* [`ARCHITECTURE_ANALYSIS.md`](ARCHITECTURE_ANALYSIS.md) - Análise completa da arquitetura
+* [`QUICK_START.md`](QUICK_START.md) - Comandos rápidos para testar
 
 ### 💰 Fase 3: Motor de Vendas (Futuro)
 
@@ -96,13 +131,14 @@ git push
 ## 📂 Estrutura de Pastas Chave
 
 * `backend/`
-* `main.py`: Configuração inicial.
-* `connection_manager.py`: Gerenciador de conexões Sockets.
-* `routers/`: Módulos da API.
-
+  * `main.py`: Configuração inicial.
+  * `connection_manager.py`: Gerenciador de conexões Sockets.
+  * `routers/`: Módulos da API (HTTP endpoints).
+  * **`services/`**: 🆕 Lógica de negócio reutilizável (Service Layer).
+  * **`alembic/`**: 🆕 Migrações de banco de dados versionadas.
 
 * `frontend/`
-* `src/components/Layout.tsx`: Hub global de notificações.
+  * `src/components/Layout.tsx`: Hub global de notificações.
 
 
 
