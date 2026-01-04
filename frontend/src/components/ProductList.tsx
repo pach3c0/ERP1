@@ -58,7 +58,8 @@ export default function ProductList() {
 
     try {
       const prodRes = await api.get('/products/');
-      setProducts(prodRes.data);
+      // A API retorna { items, total, skip, limit }
+      setProducts(prodRes.data.items || []);
     } catch (error) {
       console.error("Erro ao carregar produtos", error);
     } finally {

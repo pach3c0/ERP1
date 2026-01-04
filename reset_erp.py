@@ -63,8 +63,45 @@ CUSTOMERS_DATA = [
     }
 ]
 
-# 4. Produtos e Serviços serão implementados na Fase 2
-# Por enquanto, apenas a estrutura de CRM está ativa
+# 4. Produtos - Fase 2
+PRODUCTS_DATA = [
+    {
+        "name": "Parafuso M8",
+        "description": "Parafuso métrico de aço carbono",
+        "category": "Ferramenta",
+        "price_daily": 10.50,
+        "price_weekly": 60.00,
+        "price_monthly": 200.00,
+        "cost": 5.00,
+        "quantity": 100,
+        "serial_number": "PAR-M8-001",
+        "status": "disponivel"
+    },
+    {
+        "name": "Rebite de Alumínio",
+        "description": "Rebite de alumínio para estrutura leve",
+        "category": "Material",
+        "price_daily": 8.00,
+        "price_weekly": 45.00,
+        "price_monthly": 150.00,
+        "cost": 3.50,
+        "quantity": 250,
+        "serial_number": "REB-ALU-001",
+        "status": "disponivel"
+    },
+    {
+        "name": "Escada Alumínio 5m",
+        "description": "Escada de alumínio com 5 metros de altura",
+        "category": "Equipamento",
+        "price_daily": 75.00,
+        "price_weekly": 400.00,
+        "price_monthly": 1200.00,
+        "cost": 300.00,
+        "quantity": 5,
+        "serial_number": "ESC-ALU-5M-001",
+        "status": "disponivel"
+    }
+]
 
 def run_command(command):
     print(f"🚀 Executando: {command}")
@@ -118,182 +155,53 @@ def seed_data():
     token = r.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    # 3. Buscar IDs dos CARGOS (Roles)
-    print("   🔎 Buscando Cargos...")
-    r = requests.get(f"{API_URL}/roles/", headers=headers)
-    roles_json = r.json()
-    roles_map = {role['slug']: role['id'] for role in roles_json}
-    
-    # --- SISTEMA DE PERMISSÕES GRANULARES ---
-    # Configuração completa de todas as permissões por cargo
-    for role in roles_json:
-        if role['slug'] == 'admin':
-            # Admin: Todas as permissões
-            role['permissions'].update({
-                # Visualização
-                "can_view_all_customers": True,
-                "can_view_others_customers": True,
-                "can_access_crm": True,
-                "can_view_financial_data": True,
-                "can_view_audit": True,
-                # Criação e Edição
-                "can_create_customers": True,
-                "can_edit_own_customers": True,
-                "can_edit_others_customers": True,
-                "can_edit_financial_data": True,
-                "can_transfer_customers": True,
-                # Status e Aprovação
-                "customer_change_status": True,
-                "customer_require_approval": False,
-                # Exportação
-                "can_generate_report": True,
-                "can_export_excel": True,
-                "can_bulk_import": True,
-                # Timeline/CRM
-                "can_add_notes": True,
-                "can_add_tasks": True,
-                "can_complete_tasks": True,
-                "can_edit_notes": True,
-                "can_delete_notes": True,
-                # Exclusão
-                "can_delete_customers": True,
-                "can_view_trash": True,
-                "can_restore_deleted": True,
-                "can_hard_delete": True
-            })
-        elif role['slug'] == 'manager':
-            # Gerente: Quase todas, exceto hard delete
-            role['permissions'].update({
-                # Visualização
-                "can_view_all_customers": True,
-                "can_view_others_customers": True,
-                "can_access_crm": True,
-                "can_view_financial_data": True,
-                "can_view_audit": True,
-                # Criação e Edição
-                "can_create_customers": True,
-                "can_edit_own_customers": True,
-                "can_edit_others_customers": True,
-                "can_edit_financial_data": True,
-                "can_transfer_customers": True,
-                # Status e Aprovação
-                "customer_change_status": True,
-                "customer_require_approval": False,
-                # Exportação
-                "can_generate_report": True,
-                "can_export_excel": True,
-                "can_bulk_import": True,
-                # Timeline/CRM
-                "can_add_notes": True,
-                "can_add_tasks": True,
-                "can_complete_tasks": True,
-                "can_edit_notes": True,
-                "can_delete_notes": True,
-                # Exclusão
-                "can_delete_customers": True,
-                "can_view_trash": True,
-                "can_restore_deleted": False,
-                "can_hard_delete": False,
-                # Produtos - Visualização
-                "can_view_products": True,
-                "can_view_product_prices": True,
-                "can_view_products_full_data": True,
-                # Produtos - Criação
-                "can_create_products": True,
-                # Produtos - Edição Granular
-                "can_edit_product_basic": True,
-                "can_edit_product_prices": True,
-                "can_edit_product_status": True,
-                "can_edit_product_quantity": True,
-                # Produtos - Status
-                "can_change_product_status": True,
-                "product_require_approval": False,
-                # Produtos - Exclusão
-                "can_delete_products": False,
-                "can_soft_delete_products": True,
-                "can_hard_delete_products": False,
-                # Produtos - Exportação
-                "can_export_products": True,
-                "can_export_product_report": True,
-                "can_view_product_history": True,
-                "can_generate_product_analytics": True,
-                # Produtos - Ações em Massa
-                "can_bulk_edit_products": True,
-                "can_bulk_delete_products": False,
-                "can_bulk_import_products": True,
-                # Serviços - Visualização
-                "can_view_services": True,
-                "can_view_service_prices": True,
-                # Serviços - Criação
-                "can_create_services": True,
-                # Serviços - Edição Granular
-                "can_edit_service_basic": True,
-                "can_edit_service_prices": True,
-                "can_edit_service_status": True,
-                # Serviços - Status
-                "can_change_service_status": True,
-                "service_require_approval": False,
-                # Serviços - Exclusão
-                "can_delete_services": False,
-                "can_soft_delete_services": True,
-                "can_hard_delete_services": False,
-                # Serviços - Exportação
-                "can_export_services": True,
-                "can_export_service_report": True,
-                "can_view_service_history": True,
-                # Serviços - Ações em Massa
-                "can_bulk_edit_services": True,
-                "can_bulk_delete_service
-                "can_soft_delete_products": False,
-                "can_hard_delete_products": False,
-                # Produtos - Exportação
-                "can_export_products": False,
-                "can_export_product_report": False,
-                "can_view_product_history": False,
-                "can_generate_product_analytics": False,
-                # Produtos - Ações em Massa
-                "can_bulk_edit_products": False,
-                "can_bulk_delete_products": False,
-                "can_bulk_import_products": False,
-                # Serviços - Visualização
-                "can_view_services": True,
-                "can_view_service_prices": False,
-                # Serviços - Criação
-                "can_create_services": False,
-                # Serviços - Edição Granular
-                "can_edit_service_basic": False,
-                "can_edit_service_prices": False,
-                "can_edit_service_status": False,
-                # Serviços - Status
-                "can_change_service_status": False,
-                "service_require_approval": False,
-                # Serviços - Exclusão
-                "can_delete_services": False,
-                "can_soft_delete_services": False,
-                "can_hard_delete_services": False,
-                # Serviços - Exportação
-                "can_export_services": False,
-                "can_export_service_report": False,
-                "can_view_service_history": False,
-                # Serviços - Ações em Massa
-                "can_bulk_edit_services": False,
-                "can_bulk_delete_service
+    # 3. Criar equipe (Usuários)
+    print("   👥 Cadastrando usuários da equipe...")
+    for user in TEAM_USERS:
+        payload = {
+            "name": user["name"],
+            "email": user["email"],
+            "password": user["password"],
+            "role_slug": user["role_slug"]
+        }
+        r = requests.post(f"{API_URL}/users/", json=payload, headers=headers)
+        if r.status_code == 200:
+            print(f"   ✅ Usuário criado: {user['name']}")
+        else:
+            # Pode ser que já exista
+            print(f"   ⚠️ {user['name']}: {r.text[:100]}")
+
+    # 4. Criar Clientes
+    print("   💼 Cadastrando Clientes iniciais...")
+    for customer in CUSTOMERS_DATA:
+        payload = {
+            "name": customer["name"],
+            "document": customer["document"],
+            "person_type": customer["person_type"],
+            "email": customer["email"],
+            "phone": customer["phone"],
+            "city": customer["city"],
+            "state": customer["state"],
+            "owner_email": customer["owner_email"]
+        }
+        
         r = requests.post(f"{API_URL}/customers/", json=payload, headers=headers)
         if r.status_code == 200:
-            print(f"   ✅ Cliente criado: {customer['name']} -> Vinculado a {customer['owner_email']}")
+            print(f"   ✅ Cliente criado: {customer['name']}")
         else:
-            # Se houver erro, exibe o detalhe do Pydantic (ajuda no debug)
-            print(f"   ⚠️ Erro no cliente {customer['name']}: {r.text}")
+            print(f"   ⚠️ Erro no cliente {customer['name']}: {r.text[:100]}")
 
-    # 6. Criar PRODUTOS
+    # 5. Criar PRODUTOS
     print("   📦 Cadastrando Produtos iniciais...")
     for product in PRODUCTS_DATA:
         payload = {
             "name": product["name"],
             "description": product["description"],
+            "category": product["category"],
             "price_daily": product["price_daily"],
             "price_weekly": product["price_weekly"],
             "price_monthly": product["price_monthly"],
+            "cost": product["cost"],
             "quantity": product["quantity"],
             "serial_number": product["serial_number"],
             "status": product["status"]
@@ -303,25 +211,7 @@ def seed_data():
         if r.status_code == 200:
             print(f"   ✅ Produto criado: {product['name']}")
         else:
-            print(f"   ⚠️ Erro ao criar produto {product['name']}: {r.text}")
-
-    # 7. Criar SERVIÇOS
-    print("   🔧 Cadastrando Serviços iniciais...")
-    for service in SERVICES_DATA:
-        payload = {
-            "name": service["name"],
-            "description": service["description"],
-            "price_base": service["price_base"],
-            "price_hourly": service["price_hourly"],
-            "duration_type": service["duration_type"],
-            "status": service["status"]
-        }
-        
-        r = requests.post(f"{API_URL}/services/", json=payload, headers=headers)
-        if r.status_code == 200:
-            print(f"   ✅ Serviço criado: {service['name']}")
-        else:
-            print(f"   ⚠️ Erro ao criar serviço {service['name']}: {r.text}")
+            print(f"   ⚠️ Erro ao criar produto {product['name']}: {r.text[:100]}")
 
 def main():
     print("=========================================")
@@ -336,10 +226,10 @@ def main():
 
     print("\n=========================================")
     print("🎉 TUDO PRONTO! ACESSE http://localhost:5173")
-    print(f"👉 Admin:   {ADMIN_USER['email']}")
+    print(f"👉 Admin:   {ADMIN_USER['email']} / 123")
     print(f"👉 Gerente: gerente@erp.com / 123")
-    print(f"👉 Vendedores: carlos@vendas.com ou ana@vendas.com")
+    print(f"👉 Vendedores: carlos@vendas.com ou ana@vendas.com / 123")
     print("=========================================")
 
 if __name__ == "__main__":
-    main()print("\n   ℹ️  Produtos e Serviços serão implementados na Fase 2
+    main()
