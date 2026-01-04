@@ -6,6 +6,7 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import Home from './components/Home';
 import Dashboard from './components/Dashboard';
+import Reports from './components/Reports';
 
 // Users
 import UserList from './components/UserList';
@@ -78,6 +79,7 @@ function App() {
           <Route element={<Layout onLogout={handleLogout} />}>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/reports" element={<Reports />} />
             
             <Route path="/users" element={<UserList />} />
             <Route path="/users/new" element={<UserForm />} />

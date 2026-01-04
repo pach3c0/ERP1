@@ -165,6 +165,10 @@ export default function Layout({ onLogout }: LayoutProps) {
             <LayoutDashboard size={20} /> Dashboard
           </Link>
 
+          <Link to="/reports" className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/reports' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <LayoutDashboard size={20} /> Relatórios
+          </Link>
+
           <div className="mt-4">
             <button onClick={() => setIsCadastrosOpen(!isCadastrosOpen)} className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isCadastroActive ? 'text-blue-700 bg-blue-50/50' : 'text-gray-600 hover:bg-gray-50'}`}>
               <div className="flex items-center gap-3"><FolderPlus size={20} /> <span>Cadastros</span></div>
