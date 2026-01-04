@@ -186,14 +186,31 @@ def seed_data():
     token = r.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    # 3. Criar equipe (Usuários)
+# 3. Criar equipe (Usuários)
     print("   👥 Cadastrando usuários da equipe...")
+    
+    # Primeiro, pegar os IDs das roles
+    roles_map = {}  # {slug: id}
+    r = requests.get(f"{API_URL}/roles/", headers=headers)
+    if r.status_code == 200:
+        roles = r.json()
+        for role in roles:
+            roles_map[role.get("slug")] = role.get("id")
+    
     for user in TEAM_USERS:
+        role_slug = user.get("role_slug", "sales")
+        role_id = roles_map.get(role_slug)
+        
+        if not role_id:
+            print(f"   ⚠️ {user['name']}: Role '{role_slug}' não encontrada")
+            continue
+        
         payload = {
             "name": user["name"],
             "email": user["email"],
             "password": user["password"],
-            "role_slug": user["role_slug"]
+            "role_id": role_id,
+            "supervisor_ids": user.get("supervisor_ids", [])
         }
         r = requests.post(f"{API_URL}/users/", json=payload, headers=headers)
         if r.status_code == 200:

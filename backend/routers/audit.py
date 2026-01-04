@@ -16,7 +16,7 @@ def get_customer_audit_logs(
     current_user=Depends(get_current_user)
 ):
     # Only admin can view audit logs
-    if current_user.role.slug != "admin":
+    if not current_user.role or current_user.role.slug != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     statement = select(AuditLog, User.name).join(User, AuditLog.user_id == User.id).where(

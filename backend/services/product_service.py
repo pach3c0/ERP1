@@ -85,12 +85,13 @@ class ProductService:
             HTTPException: Se validação falhar
         """
         # 1. Verificar permissão
-        role_permissions = current_user.role.permissions
-        if not role_permissions.get("can_create_products", False) and current_user.role.slug != "admin":
-            raise HTTPException(
-                status_code=403,
-                detail="Você não tem permissão para criar produtos"
-            )
+        if current_user.role:
+            role_permissions = current_user.role.permissions
+            if not role_permissions.get("can_create_products", False) and current_user.role.slug != "admin":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Você não tem permissão para criar produtos"
+                )
         
         # 2. Validar preços
         ProductService.validate_prices(product_data)
@@ -175,11 +176,17 @@ class ProductService:
             HTTPException: Se não tiver permissão
         """
         # 1. Verificar permissão
-        role_permissions = current_user.role.permissions
-        if not ProductService.can_user_edit_product(current_user, role_permissions):
+        if current_user.role:
+            role_permissions = current_user.role.permissions
+            if not ProductService.can_user_edit_product(current_user, role_permissions):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Você não tem permissão para editar produtos"
+                )
+        else:
             raise HTTPException(
                 status_code=403,
-                detail="Você não tem permissão para editar produtos"
+                detail="Usuário não tem role associado"
             )
         
         # 2. Validar preços
@@ -250,11 +257,17 @@ class ProductService:
             HTTPException: Se não tiver permissão
         """
         # 1. Verificar permissão
-        role_permissions = current_user.role.permissions
-        if not role_permissions.get("can_change_product_status", False) and current_user.role.slug != "admin":
+        if current_user.role:
+            role_permissions = current_user.role.permissions
+            if not role_permissions.get("can_change_product_status", False) and current_user.role.slug != "admin":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Você não tem permissão para alterar status de produtos"
+                )
+        else:
             raise HTTPException(
                 status_code=403,
-                detail="Você não tem permissão para alterar status de produtos"
+                detail="Usuário não tem role associado"
             )
         
         # 2. Validar status
@@ -302,11 +315,17 @@ class ProductService:
             HTTPException: Se não tiver permissão
         """
         # 1. Verificar permissão
-        role_permissions = current_user.role.permissions
-        if not role_permissions.get("can_delete_products", False) and current_user.role.slug != "admin":
+        if current_user.role:
+            role_permissions = current_user.role.permissions
+            if not role_permissions.get("can_delete_products", False) and current_user.role.slug != "admin":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Você não tem permissão para deletar produtos"
+                )
+        else:
             raise HTTPException(
                 status_code=403,
-                detail="Você não tem permissão para deletar produtos"
+                detail="Usuário não tem role associado"
             )
         
         # 2. Marcar como inativo
@@ -391,12 +410,13 @@ class ProductService:
             statement = statement.where(Product.category == category_filter)
         
         # Verificar se usuário pode ver todos os produtos
-        role_permissions = user.role.permissions
-        can_view_all = role_permissions.get("can_view_products", True)
-        
-        if not can_view_all and user.role.slug not in ["admin", "manager"]:
-            # Vendedor não pode ver produtos (depende da implementação de negócio)
-            return []
+        if user.role:
+            role_permissions = user.role.permissions
+            can_view_all = role_permissions.get("can_view_products", True)
+            
+            if not can_view_all and user.role.slug not in ["admin", "manager"]:
+                # Vendedor não pode ver produtos (depende da implementação de negócio)
+                return []
         
         # Aplicar paginação
         statement = statement.offset(skip).limit(limit)
@@ -429,13 +449,14 @@ class ProductService:
             return None
         
         # Verificar permissão
-        role_permissions = user.role.permissions
-        can_view = role_permissions.get("can_view_products", True)
-        
-        if not can_view and user.role.slug not in ["admin", "manager"]:
-            raise HTTPException(
-                status_code=403,
-                detail="Você não tem permissão para visualizar produtos"
-            )
+        if user.role:
+            role_permissions = user.role.permissions
+            can_view = role_permissions.get("can_view_products", True)
+            
+            if not can_view and user.role.slug not in ["admin", "manager"]:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Você não tem permissão para visualizar produtos"
+                )
         
         return product

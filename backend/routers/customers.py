@@ -103,7 +103,9 @@ def read_customers(
     statement = select(Customer).where(Customer.status != "excluido")
     
     # Filter by salesperson for non-admin and non-manager users
-    if current_user.role.slug not in ["admin", "manager"]:
+    # Garante que role não é None
+    user_role_slug = current_user.role.slug if current_user.role else "user"
+    if user_role_slug not in ["admin", "manager"]:
         statement = statement.where(Customer.salesperson_id == current_user.id)
     
     # Conta total de registros (antes da paginação)
@@ -127,7 +129,7 @@ def read_trash(
     current_user=Depends(get_current_user)
 ):
     # ITEM 6: Somente Admin acessa a lixeira
-    if current_user.role.slug != "admin":
+    if not current_user.role or current_user.role.slug != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     statement = select(Customer).where(Customer.status == "excluido")
@@ -145,7 +147,7 @@ def read_customer(
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     
     # Verificar permissões: vendedor só pode ver seus próprios clientes
-    if current_user.role.slug not in ["admin", "manager"]:
+    if not current_user.role or current_user.role.slug not in ["admin", "manager"]:
         if customer.salesperson_id != current_user.id:
             raise HTTPException(status_code=403, detail="Você não tem permissão para acessar este cliente")
     
@@ -158,11 +160,14 @@ def soft_delete_customer(
     current_user=Depends(get_current_user)
 ):
     # Verificar permissão can_delete_customers
-    role_permissions = current_user.role.permissions
-    can_delete = role_permissions.get("can_delete_customers", False)
-    
-    if current_user.role.slug != "admin" and not can_delete:
-        raise HTTPException(status_code=403, detail="Acesso negado")
+    if current_user.role:
+        role_permissions = current_user.role.permissions
+        can_delete = role_permissions.get("can_delete_customers", False)
+        
+        if current_user.role.slug != "admin" and not can_delete:
+            raise HTTPException(status_code=403, detail="Acesso negado")
+    else:
+        raise HTTPException(status_code=403, detail="Usuário não tem role associado")
     
     customer = session.get(Customer, customer_id)
     if not customer:
@@ -190,7 +195,7 @@ def restore_customer(
     current_user=Depends(get_current_user)
 ):
     # ITEM 6: Somente Admin pode restaurar
-    if current_user.role.slug != "admin":
+    if not current_user.role or current_user.role.slug != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     customer = session.get(Customer, customer_id)
@@ -222,7 +227,7 @@ def hard_delete_customer(
     current_user=Depends(get_current_user)
 ):
     # ITEM 6: Somente Admin pode deletar definitivamente
-    if current_user.role.slug != "admin":
+    if not current_user.role or current_user.role.slug != "admin":
         raise HTTPException(status_code=403, detail="Acesso negado")
     
     customer = session.get(Customer, customer_id)
@@ -263,8 +268,9 @@ def get_customer_notes(
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     
     # Filtrar por vendedor se não for admin/manager
-    if current_user.role.slug not in ["admin", "manager"] and customer.salesperson_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Acesso negado")
+    if not current_user.role or current_user.role.slug not in ["admin", "manager"]:
+        if customer.salesperson_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Acesso negado")
     
     statement = select(CustomerNote, User.name.label("user_name")).join(User, CustomerNote.created_by_id == User.id).where(
         CustomerNote.customer_id == customer_id
@@ -302,8 +308,9 @@ async def create_customer_note(
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
     
     # Filtrar por vendedor se não for admin/manager
-    if current_user.role.slug not in ["admin", "manager"] and customer.salesperson_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Acesso negado")
+    if not current_user.role or current_user.role.slug not in ["admin", "manager"]:
+        if customer.salesperson_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Acesso negado")
     
     # Processar menções na nota
     import re

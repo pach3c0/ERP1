@@ -72,12 +72,13 @@ class ServiceService:
             HTTPException: Se validação falhar
         """
         # 1. Verificar permissão
-        role_permissions = current_user.role.permissions
-        if not role_permissions.get("can_create_services", False) and current_user.role.slug != "admin":
-            raise HTTPException(
-                status_code=403,
-                detail="Você não tem permissão para criar serviços"
-            )
+        if current_user.role:
+            role_permissions = current_user.role.permissions
+            if not role_permissions.get("can_create_services", False) and current_user.role.slug != "admin":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Você não tem permissão para criar serviços"
+                )
         
         # 2. Validar preços
         ServiceService.validate_prices(service_data)
@@ -198,11 +199,17 @@ class ServiceService:
             HTTPException: Se não tiver permissão
         """
         # 1. Verificar permissão
-        role_permissions = current_user.role.permissions
-        if not role_permissions.get("can_change_service_status", False) and current_user.role.slug != "admin":
+        if current_user.role:
+            role_permissions = current_user.role.permissions
+            if not role_permissions.get("can_change_service_status", False) and current_user.role.slug != "admin":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Você não tem permissão para alterar status de serviços"
+                )
+        else:
             raise HTTPException(
                 status_code=403,
-                detail="Você não tem permissão para alterar status de serviços"
+                detail="Usuário não tem role associado"
             )
         
         # 2. Validar novo status
@@ -250,12 +257,13 @@ class ServiceService:
             HTTPException: Se não tiver permissão
         """
         # 1. Verificar permissão
-        role_permissions = current_user.role.permissions
-        if not role_permissions.get("can_delete_services", False) and current_user.role.slug != "admin":
-            raise HTTPException(
-                status_code=403,
-                detail="Você não tem permissão para deletar serviços"
-            )
+        if current_user.role:
+            role_permissions = current_user.role.permissions
+            if not role_permissions.get("can_edit_service_basic", False) and current_user.role.slug != "admin":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Você não tem permissão para editar serviços"
+                )
         
         # 2. Soft delete
         old_status = service.status

@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError
 
 from database import create_db_and_tables, engine
 from models import Role
-from routers import auth, users, customers, feed, websockets, audit, products, services 
+from routers import auth, users, customers, feed, websockets, audit, products, services, quotes, dashboard 
 
 def create_default_roles():
     """Cria os cargos padrão se não existirem."""
@@ -19,11 +19,30 @@ def create_default_roles():
                     "slug": "admin", 
                     "description": "Acesso total", 
                     "permissions": {
-                        "all": True, 
+                        "all": True,
+                        # Clientes
                         "customer_change_status": True, 
                         "customer_require_approval": False,
                         "can_edit_own_customers": True,
-                        "can_edit_others_customers": True
+                        "can_edit_others_customers": True,
+                        "can_delete_customers": True,
+                        # Produtos
+                        "can_create_products": True,
+                        "can_edit_products": True,
+                        "can_delete_products": True,
+                        "can_change_product_status": True,
+                        # Serviços
+                        "can_create_services": True,
+                        "can_edit_services": True,
+                        "can_delete_services": True,
+                        "can_change_service_status": True,
+                        "can_edit_service_basic": True,
+                        # Orçamentos
+                        "can_create_quotes": True,
+                        "can_edit_quotes": True,
+                        "can_delete_quotes": True,
+                        "can_change_quote_status": True,
+                        "can_view_all_quotes": True,
                     }
                 },
                 {
@@ -31,10 +50,29 @@ def create_default_roles():
                     "slug": "manager", 
                     "description": "Gestão", 
                     "permissions": {
+                        # Clientes
                         "customer_change_status": True, 
                         "customer_require_approval": False,
                         "can_edit_own_customers": True,
-                        "can_edit_others_customers": True
+                        "can_edit_others_customers": True,
+                        "can_delete_customers": True,
+                        # Produtos
+                        "can_create_products": True,
+                        "can_edit_products": True,
+                        "can_delete_products": True,
+                        "can_change_product_status": True,
+                        # Serviços
+                        "can_create_services": True,
+                        "can_edit_services": True,
+                        "can_delete_services": True,
+                        "can_change_service_status": True,
+                        "can_edit_service_basic": True,
+                        # Orçamentos
+                        "can_create_quotes": True,
+                        "can_edit_quotes": True,
+                        "can_delete_quotes": True,
+                        "can_change_quote_status": True,
+                        "can_view_all_quotes": True,
                     }
                 },
                 {
@@ -42,10 +80,29 @@ def create_default_roles():
                     "slug": "sales", 
                     "description": "Vendas", 
                     "permissions": {
+                        # Clientes
                         "customer_change_status": False, 
                         "customer_require_approval": True,
                         "can_edit_own_customers": True,
-                        "can_edit_others_customers": False
+                        "can_edit_others_customers": False,
+                        "can_delete_customers": False,
+                        # Produtos
+                        "can_create_products": False,
+                        "can_edit_products": False,
+                        "can_delete_products": False,
+                        "can_change_product_status": False,
+                        # Serviços
+                        "can_create_services": False,
+                        "can_edit_services": False,
+                        "can_delete_services": False,
+                        "can_change_service_status": False,
+                        "can_edit_service_basic": False,
+                        # Orçamentos
+                        "can_create_quotes": True,
+                        "can_edit_quotes": True,
+                        "can_delete_quotes": False,
+                        "can_change_quote_status": False,
+                        "can_view_all_quotes": False,
                     }
                 }
             ]
@@ -55,10 +112,10 @@ def create_default_roles():
                     print(f"🛠️ Criando cargo: {role_data['name']}")
                     session.add(Role(**role_data))
                 else:
-                    # Atualiza permissões se necessário
-                    if not role.permissions or "can_edit_own_customers" not in role.permissions:
-                        role.permissions = role_data["permissions"]
-                        session.add(role)
+                    # Sempre atualiza permissões para adicionar novas
+                    print(f"📝 Atualizando permissões do cargo: {role_data['name']}")
+                    role.permissions = role_data["permissions"]
+                    session.add(role)
             session.commit()
             print("✅ Cargos padrão verificados/criados com sucesso.")
     except Exception as e:
@@ -101,3 +158,5 @@ app.include_router(websockets.router)
 app.include_router(audit.router)
 app.include_router(products.router)
 app.include_router(services.router)
+app.include_router(quotes.router)
+app.include_router(dashboard.router)

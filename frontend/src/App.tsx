@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Layout from './components/Layout';
 import Home from './components/Home';
+import Dashboard from './components/Dashboard';
 
 // Users
 import UserList from './components/UserList';
@@ -19,6 +20,11 @@ import ProductList from './components/ProductList';
 import ProductForm from './components/ProductForm';
 import ServiceList from './components/ServiceList';
 import ServiceForm from './components/ServiceForm';
+
+// Quotes
+import QuoteList from './components/QuoteList';
+import QuoteForm from './components/QuoteForm';
+import QuoteDetail from './components/QuoteDetail';
 
 // Módulos Extras
 import Settings from './components/Settings';
@@ -71,6 +77,7 @@ function App() {
         {token ? (
           <Route element={<Layout onLogout={handleLogout} />}>
             <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             
             <Route path="/users" element={<UserList />} />
             <Route path="/users/new" element={<UserForm />} />
@@ -87,6 +94,10 @@ function App() {
             <Route path="/services" element={<ServiceList />} />
             <Route path="/services/new" element={<ServiceForm />} />
             <Route path="/services/:id" element={<ServiceForm />} />
+
+            <Route path="/quotes" element={<QuoteList />} />
+            <Route path="/quotes/new" element={<QuoteForm />} />
+            <Route path="/quotes/:id" element={<QuoteDetail />} />
 
             {/* NOVA ROTA DE AUDITORIA: Adicionada para evitar o redirecionamento para Home */}
             <Route path="/audit/customer/:id" element={<AuditView />} /> 

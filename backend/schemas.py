@@ -156,3 +156,57 @@ class ServiceUpdate(BaseModel):
     price_hourly: Optional[float] = None
     duration_type: Optional[str] = None
     notes: Optional[str] = None
+
+
+# ===== QUOTES (Orçamentos) =====
+
+class QuoteItem(BaseModel):
+    """Item do orçamento (produto ou serviço)"""
+    type: str  # 'product' ou 'service'
+    item_id: int  # ID do produto ou serviço
+    name: str  # Nome do item
+    quantity: int = 1
+    unit_price: float
+    subtotal: float
+
+
+class QuoteCreate(BaseModel):
+    customer_id: int
+    items: List[QuoteItem]
+    discount: float = 0.0
+    discount_percent: float = 0.0
+    notes: Optional[str] = None
+    payment_terms: Optional[str] = None
+    delivery_terms: Optional[str] = None
+    valid_until: Optional[datetime] = None
+
+
+class QuoteRead(BaseModel):
+    id: int
+    quote_number: str
+    customer_id: int
+    items: List[QuoteItem]
+    subtotal: float
+    discount: float
+    discount_percent: float
+    total: float
+    status: str
+    valid_until: Optional[datetime]
+    notes: Optional[str]
+    payment_terms: Optional[str]
+    delivery_terms: Optional[str]
+    sent_at: Optional[datetime]
+    approved_at: Optional[datetime]
+    invoiced_at: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+
+
+class QuoteUpdate(BaseModel):
+    items: Optional[List[QuoteItem]] = None
+    discount: Optional[float] = None
+    discount_percent: Optional[float] = None
+    notes: Optional[str] = None
+    payment_terms: Optional[str] = None
+    delivery_terms: Optional[str] = None
+    valid_until: Optional[datetime] = None

@@ -12,14 +12,6 @@ from connection_manager import manager
 
 router = APIRouter(tags=["Feed e Notificações"])
 
-@router.get("/dashboard/stats")
-def get_dashboard_stats(session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
-    role_slug = get_user_role_slug(current_user, session)
-    query = select(Customer)
-    if role_slug == 'sales': query = query.where(Customer.salesperson_id == current_user.id)
-    all_customers = session.exec(query).all()
-    return {"total": len(all_customers), "pf": len([c for c in all_customers if c.person_type == 'PF']), "pj": len([c for c in all_customers if c.person_type == 'PJ'])}
-
 @router.get("/feed/", response_model=List[FeedRead])
 def get_feed(user_id: Optional[int] = None, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     role_slug = get_user_role_slug(current_user, session)

@@ -158,6 +158,10 @@ export default function Layout({ onLogout }: LayoutProps) {
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <Link to="/" className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+            <LayoutDashboard size={20} /> Home
+          </Link>
+
+          <Link to="/dashboard" className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/dashboard' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}>
             <LayoutDashboard size={20} /> Dashboard
           </Link>
 
@@ -184,6 +188,10 @@ export default function Layout({ onLogout }: LayoutProps) {
 
                 <Link to="/services" className={`flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm transition-colors ${location.pathname === '/services' ? 'text-blue-700 font-semibold bg-blue-50' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
                   <Briefcase size={18} /> Serviços
+                </Link>
+
+                <Link to="/quotes" className={`flex items-center gap-3 px-4 py-2 pl-12 rounded-lg text-sm transition-colors ${location.pathname.includes('/quotes') ? 'text-blue-700 font-semibold bg-blue-50' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}>
+                  <Briefcase size={18} /> Orçamentos
                 </Link>
                 
                 {/* Novos Itens - Em Desenvolvimento */}

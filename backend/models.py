@@ -159,3 +159,33 @@ class Service(BaseModel, table=True):
     # Informações adicionais
     duration_type: Optional[str] = None     # horaria, diaria, projeto
     notes: Optional[str] = None             # Observações
+
+
+class Quote(BaseModel, table=True):
+    """Orçamento/Cotação para clientes"""
+    quote_number: str = Field(unique=True, index=True)  # Ex: ORC-2026-0001
+    customer_id: int = Field(foreign_key="customer.id")
+    
+    # Relacionamentos
+    customer: Optional["Customer"] = Relationship()
+    
+    # Dados do orçamento
+    items: str = Field(sa_column=Column(JSON))  # Lista de {type: 'product'|'service', id, quantity, price, subtotal}
+    subtotal: float = Field(default=0.0)
+    discount: float = Field(default=0.0)  # Desconto em valor
+    discount_percent: float = Field(default=0.0)  # Desconto em %
+    total: float = Field(default=0.0)
+    
+    # Status e validade
+    status: str = Field(default="rascunho")  # rascunho, enviado, aprovado, recusado, faturado, cancelado
+    valid_until: Optional[datetime] = None  # Data de validade do orçamento
+    
+    # Informações adicionais
+    notes: Optional[str] = None  # Observações gerais
+    payment_terms: Optional[str] = None  # Condições de pagamento
+    delivery_terms: Optional[str] = None  # Condições de entrega
+    
+    # Datas importantes
+    sent_at: Optional[datetime] = None  # Data de envio ao cliente
+    approved_at: Optional[datetime] = None  # Data de aprovação
+    invoiced_at: Optional[datetime] = None  # Data de faturamento

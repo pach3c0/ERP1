@@ -5,7 +5,7 @@ Finas e limpas - toda lógica delegada para ServiceService
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from sqlmodel import Session
-from typing import Optional
+from typing import Optional, List
 
 from database import get_session
 from models import Service
@@ -34,7 +34,7 @@ def create_service(
     return new_service
 
 
-@router.get("/", response_model=dict)
+@router.get("/")
 def list_services(
     skip: int = Query(0, ge=0),
     limit: int = Query(25, ge=1, le=100),
@@ -64,8 +64,25 @@ def list_services(
         category_filter=category
     )
     
+    # Serializar serviços manualmente
+    items_list = []
+    for s in services:
+        items_list.append({
+            "id": s.id,
+            "name": s.name,
+            "description": s.description,
+            "category": s.category,
+            "status": s.status,
+            "price_base": s.price_base,
+            "price_hourly": s.price_hourly,
+            "duration_type": s.duration_type,
+            "notes": s.notes,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+            "updated_at": s.updated_at.isoformat() if s.updated_at else None,
+        })
+    
     return {
-        "items": services,
+        "items": items_list,
         "total": len(all_services),
         "skip": skip,
         "limit": limit

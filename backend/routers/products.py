@@ -5,7 +5,7 @@ Finas e limpas - toda lógica delegada para ProductService
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from sqlmodel import Session
-from typing import Optional
+from typing import Optional, List
 
 from database import get_session
 from models import Product
@@ -34,7 +34,7 @@ def create_product(
     return new_product
 
 
-@router.get("/", response_model=dict)
+@router.get("/")
 def list_products(
     skip: int = Query(0, ge=0),
     limit: int = Query(25, ge=1, le=100),
@@ -64,8 +64,28 @@ def list_products(
         category_filter=category
     )
     
+    # Serializar produtos manualmente
+    items_list = []
+    for p in products:
+        items_list.append({
+            "id": p.id,
+            "name": p.name,
+            "description": p.description,
+            "category": p.category,
+            "status": p.status,
+            "price_daily": p.price_daily,
+            "price_weekly": p.price_weekly,
+            "price_monthly": p.price_monthly,
+            "cost": p.cost,
+            "quantity": p.quantity,
+            "serial_number": p.serial_number,
+            "notes": p.notes,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+            "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+        })
+    
     return {
-        "items": products,
+        "items": items_list,
         "total": len(all_products),
         "skip": skip,
         "limit": limit
