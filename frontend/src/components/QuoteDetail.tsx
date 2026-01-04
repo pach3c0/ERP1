@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Download } from 'lucide-react';
 import api from '../api';
 
 interface QuoteItem {
@@ -47,6 +48,7 @@ export default function QuoteDetail() {
   const [quote, setQuote] = useState<Quote | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     fetchQuote();
@@ -83,6 +85,32 @@ export default function QuoteDetail() {
       console.error('Erro ao atualizar status:', error);
       const err = error as { response?: { data?: { detail?: string } } };
       alert(err.response?.data?.detail || 'Erro ao atualizar status');
+    }
+  };
+
+  const downloadPdf = async () => {
+    if (!id) return;
+    
+    try {
+      setDownloadingPdf(true);
+      const response = await api.get(`/quotes/${id}/pdf`, {
+        responseType: 'blob'
+      });
+      
+      // Criar URL do blob e fazer download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${quote?.quote_number || 'orcamento'}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao fazer download do PDF:', error);
+      alert('Erro ao gerar PDF');
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -167,9 +195,18 @@ export default function QuoteDetail() {
             {getStatusBadge(quote.status)}
           </div>
 
-          {getAvailableTransitions(quote.status).length > 0 && (
-            <div className="flex gap-2">
-              {getAvailableTransitions(quote.status).map((newStatus) => (
+          <div className="flex gap-2">
+            <button
+              onClick={downloadPdf}
+              disabled={downloadingPdf}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-2"
+            >
+              <Download size={18} />
+              {downloadingPdf ? 'Gerando...' : 'Baixar PDF'}
+            </button>
+
+            {getAvailableTransitions(quote.status).length > 0 && 
+              getAvailableTransitions(quote.status).map((newStatus) => (
                 <button
                   key={newStatus}
                   onClick={() => updateStatus(newStatus)}
@@ -177,9 +214,9 @@ export default function QuoteDetail() {
                 >
                   Marcar como {newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}
                 </button>
-              ))}
-            </div>
-          )}
+              ))
+            }
+          </div>
         </div>
       </div>
 

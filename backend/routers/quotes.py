@@ -3,6 +3,7 @@ Rotas HTTP de Orçamentos (Quotes)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi.responses import StreamingResponse
 from sqlmodel import Session
 from typing import Optional, List
 import json
@@ -12,6 +13,7 @@ from models import Quote, Customer
 from dependencies import get_current_user
 from schemas import QuoteCreate, QuoteRead, QuoteUpdate, QuoteItem
 from services.quote_service import QuoteService
+from pdf_generator import generate_quote_pdf
 
 router = APIRouter(prefix="/quotes", tags=["quotes"])
 
@@ -274,3 +276,61 @@ def delete_quote(
     session.commit()
     
     return {"detail": "Orçamento deletado com sucesso"}
+
+
+@router.get("/{quote_id}/pdf")
+def get_quote_pdf(
+    quote_id: int,
+    session: Session = Depends(get_session),
+    current_user=Depends(get_current_user)
+):
+    """
+    Gera e retorna um PDF do orçamento.
+    """
+    quote = session.get(Quote, quote_id)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Orçamento não encontrado")
+    
+    # Buscar dados do cliente
+    customer = session.get(Customer, quote.customer_id)
+    
+    # Preparar dados para o PDF
+    items_list = json.loads(quote.items) if isinstance(quote.items, str) else quote.items
+    
+    quote_data = {
+        "id": quote.id,
+        "quote_number": quote.quote_number,
+        "status": quote.status,
+        "created_at": quote.created_at.isoformat() if quote.created_at else "",
+        "valid_until": quote.valid_until,
+        "subtotal": float(quote.subtotal or 0),
+        "discount": float(quote.discount or 0),
+        "discount_percent": float(quote.discount_percent or 0),
+        "total": float(quote.total or 0),
+        "payment_terms": quote.payment_terms or "",
+        "delivery_terms": quote.delivery_terms or "",
+        "notes": quote.notes or "",
+        "items": items_list or [],
+        "customer": {
+            "name": customer.name if customer else "N/A",
+            "document": customer.document if customer else "N/A",
+            "email": customer.email if customer else "N/A",
+            "phone": customer.phone if customer else "N/A",
+            "address_line": customer.address_line if customer else "N/A",
+            "number": customer.number if customer else "N/A",
+            "city": customer.city if customer else "N/A",
+            "state": customer.state if customer else "N/A",
+        }
+    }
+    
+    # Gerar PDF
+    pdf_content = generate_quote_pdf(quote_data)
+    
+    # Retornar como download
+    return StreamingResponse(
+        iter([pdf_content]),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={quote.quote_number}.pdf"
+        }
+    )
