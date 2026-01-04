@@ -103,6 +103,37 @@ PRODUCTS_DATA = [
     }
 ]
 
+# 5. Serviços - Fase 2
+SERVICES_DATA = [
+    {
+        "name": "Instalação de Equipamento",
+        "description": "Instalação e configuração de equipamentos no local do cliente",
+        "category": "instalação",
+        "price_base": 500.00,
+        "price_hourly": 100.00,
+        "duration_type": "horaria",
+        "status": "ativo"
+    },
+    {
+        "name": "Consultoria Técnica",
+        "description": "Assessoria técnica para seleção e otimização de equipamentos",
+        "category": "consultoria",
+        "price_base": 1000.00,
+        "price_hourly": 150.00,
+        "duration_type": "horaria",
+        "status": "ativo"
+    },
+    {
+        "name": "Manutenção Preventiva",
+        "description": "Manutenção periódica e inspeção de equipamentos",
+        "category": "suporte",
+        "price_base": 300.00,
+        "price_hourly": 80.00,
+        "duration_type": "horaria",
+        "status": "ativo"
+    }
+]
+
 def run_command(command):
     print(f"🚀 Executando: {command}")
     result = subprocess.run(command, shell=True)
@@ -212,6 +243,25 @@ def seed_data():
             print(f"   ✅ Produto criado: {product['name']}")
         else:
             print(f"   ⚠️ Erro ao criar produto {product['name']}: {r.text[:100]}")
+
+    # 6. Criar SERVIÇOS
+    print("   🔧 Cadastrando Serviços iniciais...")
+    for service in SERVICES_DATA:
+        payload = {
+            "name": service["name"],
+            "description": service["description"],
+            "category": service["category"],
+            "price_base": service["price_base"],
+            "price_hourly": service["price_hourly"],
+            "duration_type": service["duration_type"],
+            "status": service["status"]
+        }
+        
+        r = requests.post(f"{API_URL}/services/", json=payload, headers=headers)
+        if r.status_code == 200:
+            print(f"   ✅ Serviço criado: {service['name']}")
+        else:
+            print(f"   ⚠️ Erro ao criar serviço {service['name']}: {r.text[:100]}")
 
 def main():
     print("=========================================")

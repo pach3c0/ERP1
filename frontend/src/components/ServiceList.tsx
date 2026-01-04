@@ -55,7 +55,9 @@ export default function ServiceList() {
 
     try {
       const servicesRes = await api.get('/services/');
-      setServices(servicesRes.data);
+      // A API retorna { items, total, skip, limit }
+      setServices(servicesRes.data.items || []tal, skip, limit }
+      setServices(servicesRes.data.items || []);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
