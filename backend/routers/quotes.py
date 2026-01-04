@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlmodel import Session
 from typing import Optional, List
 import json
+import logging
 
 from database import get_session
 from models import Quote, Customer
@@ -14,6 +15,9 @@ from dependencies import get_current_user
 from schemas import QuoteCreate, QuoteRead, QuoteUpdate, QuoteItem
 from services.quote_service import QuoteService
 from pdf_generator import generate_quote_pdf
+from email_service import send_quote_status_notification
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/quotes", tags=["quotes"])
 
@@ -167,10 +171,14 @@ def update_quote_status(
 ):
     """
     Atualiza apenas o status de um orçamento.
+    Envia email de notificação ao cliente quando status muda.
     """
     quote = session.get(Quote, quote_id)
     if not quote:
         raise HTTPException(status_code=404, detail="Orçamento não encontrado")
+    
+    # Store previous status for email notification
+    previous_status = quote.status
     
     updated_quote = QuoteService.update_quote_status(
         session=session,
@@ -178,6 +186,24 @@ def update_quote_status(
         new_status=status_update.get('new_status'),
         current_user=current_user
     )
+    
+    # Send email notification to customer
+    try:
+        customer = session.get(Customer, updated_quote.customer_id)
+        if customer and customer.email:
+            # Only send email if status actually changed
+            if previous_status != updated_quote.status:
+                send_quote_status_notification(
+                    customer_email=customer.email,
+                    customer_name=customer.name,
+                    quote_number=updated_quote.quote_number,
+                    new_status=updated_quote.status,
+                    previous_status=previous_status
+                )
+                logger.info(f"Notification email sent for quote {updated_quote.quote_number}")
+    except Exception as e:
+        # Log error but don't fail the request
+        logger.error(f"Failed to send email notification: {str(e)}")
     
     items_list = json.loads(updated_quote.items) if isinstance(updated_quote.items, str) else updated_quote.items
     

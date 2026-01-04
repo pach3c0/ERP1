@@ -10,3 +10,4 @@ websockets
 validate-docbr
 alembic
 reportlab
+python-dotenv
