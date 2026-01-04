@@ -49,14 +49,14 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input type="email" required className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="email" required className="w-full px-4 py-2 input-touch border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-            <input type="password" required className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input type="password" required className="w-full px-4 py-2 input-touch border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">{error}</div>}
-          <button type="submit" disabled={loading} className={`w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition duration-200 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
+          <button type="submit" disabled={loading} className={`w-full py-3 px-4 btn-touch bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition duration-200 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}>
             {loading ? 'Entrando...' : 'Entrar no Sistema'}
           </button>
         </form>

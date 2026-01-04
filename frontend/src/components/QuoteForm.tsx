@@ -137,13 +137,17 @@ export default function QuoteForm() {
       setItems(updatedItems);
     } else {
       // Add new item
+      const unitPrice = itemType === 'product'
+        ? (selectedItem as Product).price_daily
+        : (selectedItem as Service).price_base;
+
       const newItem: QuoteItem = {
         type: itemType,
         item_id: selectedItem.id,
         name: selectedItem.name,
         quantity: itemQuantity,
-        unit_price: itemType === 'product' ? (selectedItem as Product).price_daily : selectedItem.price_base,
-        subtotal: itemQuantity * (itemType === 'product' ? (selectedItem as Product).price_daily : selectedItem.price_base)
+        unit_price: unitPrice,
+        subtotal: itemQuantity * unitPrice
       };
       setItems([...items, newItem]);
     }
@@ -335,12 +339,17 @@ export default function QuoteForm() {
                 className="w-full p-2 border rounded"
               >
                 <option value="">Selecione...</option>
-                {(itemType === 'product' ? products : services).map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} - R$ {itemType === 'product' ? (item as Product).price_daily.toFixed(2) : item.price_base.toFixed(2)}
-                    {itemType === 'product' && ` (Estoque: ${(item as Product).quantity})`}
-                  </option>
-                ))}
+                {(itemType === 'product' ? products : services).map((item) => {
+                  const price = itemType === 'product'
+                    ? (item as Product).price_daily.toFixed(2)
+                    : (item as Service).price_base.toFixed(2);
+                  const stock = itemType === 'product' ? ` (Estoque: ${(item as Product).quantity})` : '';
+                  return (
+                    <option key={item.id} value={item.id}>
+                      {item.name} - R$ {price}{stock}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

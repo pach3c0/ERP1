@@ -4,7 +4,7 @@ import api from '../api';
 import {
   LayoutDashboard, Users, LogOut, FolderPlus,
   ChevronDown, ChevronRight, UserCog, Settings, Bell,
-  Briefcase
+  Briefcase, Menu, X
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -24,6 +24,7 @@ export default function Layout({ onLogout }: LayoutProps) {
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement>(null); // Ref para o elemento de áudio
   const [isCadastrosOpen, setIsCadastrosOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const isCadastroActive = ['/customers', '/products', '/services', '/users'].includes(location.pathname);
 
   // --- DADOS DO USUÁRIO ---
@@ -45,6 +46,11 @@ export default function Layout({ onLogout }: LayoutProps) {
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   
   const ws = useRef<WebSocket | null>(null);
+
+  // Fecha menu lateral ao trocar de rota em mobile
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     const fetchNotifs = async () => {
@@ -133,10 +139,14 @@ export default function Layout({ onLogout }: LayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
       
-      {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 z-20">
+      {/* SIDEBAR - Desktop fixo, Mobile em overlay */}
+      <aside
+        className={`fixed inset-y-0 left-0 w-72 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-200 z-40
+        ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
+        lg:translate-x-0 lg:relative lg:flex`}
+      >
         <div className="h-auto py-6 flex flex-col justify-center px-6 border-b border-gray-100 bg-gray-50/50">
           <div className="flex items-center gap-2 mb-3">
              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white text-sm font-bold shadow-sm">E</div>
@@ -268,12 +278,31 @@ export default function Layout({ onLogout }: LayoutProps) {
         </div>
       </aside>
 
+      {/* Overlay para mobile */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 backdrop-blur-[1px] z-30 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* ÁREA PRINCIPAL */}
       <main className="flex-1 flex flex-col bg-gray-50 min-w-0">
         {/* Elemento de áudio para notificações */}
         <audio ref={audioRef} src="/notification.mp3" preload="auto" />
 
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-end px-8 shadow-sm z-10">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 shadow-sm z-10">
+            <div className="flex items-center gap-3">
+              <button
+                className="lg:hidden p-2 rounded-md border border-gray-200 text-gray-700 hover:bg-gray-100 transition"
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                aria-label="Abrir menu"
+              >
+                {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+              <div className="lg:hidden text-sm font-semibold text-gray-700">ERP Agent</div>
+            </div>
+
             <div className="relative">
                 <button 
                     onClick={() => setShowNotifMenu(!showNotifMenu)} 
@@ -311,7 +340,7 @@ export default function Layout({ onLogout }: LayoutProps) {
             </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-auto p-4 md:p-8">
             <Outlet />
         </div>
       </main>

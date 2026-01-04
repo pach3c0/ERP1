@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 import { 
   Shield, Save, CheckCircle, XCircle, Info, Trash2, 
-  Building2, Settings as SettingsIcon, Users, Briefcase, 
+  Settings as SettingsIcon, Users, Briefcase, 
   DollarSign, Plug, FileText, ClipboardList, CreditCard,
   BarChart3, Package, Wrench
 } from 'lucide-react';

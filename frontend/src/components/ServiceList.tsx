@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import { Plus, Edit2, Trash2, Download, Lock, AlertCircle, X } from 'lucide-react';
-import { getUserPermissions, hasPermission } from '../utils/permissionsHelper';
+import { Plus, Edit2, Trash2, Download, Lock, AlertCircle } from 'lucide-react';
+import { hasPermission } from '../utils/permissionsHelper';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -15,12 +15,6 @@ interface Service {
   price_hourly?: number;
 }
 
-interface UserPermissions {
-  can_create_services: boolean;
-  can_edit_services: boolean;
-  can_delete_services: boolean;
-}
-
 export default function ServiceList() {
   const navigate = useNavigate();
   const [services, setServices] = useState<Service[]>([]);
@@ -29,20 +23,10 @@ export default function ServiceList() {
   const [filterCategory, setFilterCategory] = useState('todos');
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userPermissions, setUserPermissions] = useState(getUserPermissions());
   const [showPermissionWarning, setShowPermissionWarning] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  useEffect(() => {
-    // Atualizar permissões quando o armazenamento muda
-    const handleStorageChange = () => {
-      setUserPermissions(getUserPermissions());
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const fetchData = async () => {
@@ -260,10 +244,10 @@ export default function ServiceList() {
             <p className="text-gray-500 text-lg">Sem acesso a serviços</p>
           </div>
         ) : filteredServices.length > 0 ? (
-          <table className="w-full">
+          <table className="w-full text-xs sm:text-sm min-w-[700px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-4 py-3 text-left">
+                <th className="px-3 sm:px-4 py-3 text-left">
                   <input
                     type="checkbox"
                     checked={selectedServices.length === filteredServices.length && filteredServices.length > 0}
@@ -271,19 +255,19 @@ export default function ServiceList() {
                     className="rounded"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nome</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Categoria</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                <th className="px-3 sm:px-4 py-3 text-left text-sm font-semibold text-gray-700">Nome</th>
+                <th className="px-3 sm:px-4 py-3 text-left text-sm font-semibold text-gray-700">Categoria</th>
+                <th className="px-3 sm:px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
                 {hasPermission('can_edit_service_prices') && (
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Preço Base</th>
+                  <th className="px-3 sm:px-4 py-3 text-left text-sm font-semibold text-gray-700">Preço Base</th>
                 )}
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Ações</th>
+                <th className="px-3 sm:px-4 py-3 text-left text-sm font-semibold text-gray-700">Ações</th>
               </tr>
             </thead>
             <tbody>
               {filteredServices.map(service => (
                 <tr key={service.id} className={`border-b border-gray-200 hover:bg-gray-50 transition ${selectedServices.includes(service.id) ? 'bg-blue-50' : ''}`}>
-                  <td className="px-4 py-3">
+                  <td className="px-3 sm:px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedServices.includes(service.id)}
@@ -291,21 +275,21 @@ export default function ServiceList() {
                       className="rounded"
                     />
                   </td>
-                  <td className="px-4 py-3 font-semibold text-gray-800">{service.name}</td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-3 sm:px-4 py-3 font-semibold text-gray-800">{service.name}</td>
+                  <td className="px-3 sm:px-4 py-3 text-gray-600">
                     {service.category.charAt(0).toUpperCase() + service.category.slice(1)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-3 sm:px-4 py-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(service.status)}`}>
                       {service.status.charAt(0).toUpperCase() + service.status.slice(1)}
                     </span>
                   </td>
                   {hasPermission('can_edit_service_prices') && (
-                    <td className="px-4 py-3 text-gray-600 font-semibold">
+                    <td className="px-3 sm:px-4 py-3 text-gray-600 font-semibold">
                       R$ {service.price_base.toFixed(2)}
                     </td>
                   )}
-                  <td className="px-4 py-3 flex gap-2">
+                  <td className="px-3 sm:px-4 py-3 flex gap-2">
                     {hasPermission('can_edit_service_basic') ? (
                       <button
                         onClick={() => navigate(`/services/${service.id}`)}

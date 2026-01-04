@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { 
   Plus, Search, Package, 
-  MoreVertical, Filter, Printer, Trash2, Edit2, Eye, Lock, AlertCircle, X
+  Printer, Trash2, Edit2, Lock, AlertCircle, X
 } from 'lucide-react';
-import { getUserPermissions, hasPermission } from '../utils/permissionsHelper';
+import { hasPermission } from '../utils/permissionsHelper';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -32,21 +32,13 @@ export default function ProductList() {
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   
   // Permissões granulares
-  const [userPermissions, setUserPermissions] = useState(getUserPermissions());
   const [showPermissionWarning, setShowPermissionWarning] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    // Atualizar permissões quando o armazenamento muda
-    const handleStorageChange = () => {
-      setUserPermissions(getUserPermissions());
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  // Permissões são lidas diretamente dos helpers; não é necessário estado local aqui.
 
   const fetchData = async () => {
     // Se o usuário não pode visualizar produtos, não carrega
@@ -67,9 +59,12 @@ export default function ProductList() {
     }
   };
 
-  const handleSelectOne = (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); 
-    setSelectedProducts(prev => 
+  const handleSelectOne = (
+    e: React.MouseEvent | React.ChangeEvent<HTMLInputElement>,
+    id: number
+  ) => {
+    e.stopPropagation();
+    setSelectedProducts(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -274,10 +269,10 @@ export default function ProductList() {
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-xs sm:text-sm min-w-[720px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left">
+                  <th className="px-3 sm:px-4 py-3 text-left">
                     <input
                       type="checkbox"
                       checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
@@ -285,16 +280,16 @@ export default function ProductList() {
                       className="cursor-pointer"
                     />
                   </th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Produto</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Categoria</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                  <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700">Produto</th>
+                  <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700">Categoria</th>
+                  <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700">Status</th>
                   {hasPermission('can_edit_product_prices') && (
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Preço Diária</th>
+                    <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700">Preço Diária</th>
                   )}
                   {hasPermission('can_edit_product_quantity') && (
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Qtd</th>
+                    <th className="px-3 sm:px-4 py-3 text-left font-semibold text-gray-700">Qtd</th>
                   )}
-                  <th className="px-4 py-3 text-center font-semibold text-gray-700">Ações</th>
+                  <th className="px-3 sm:px-4 py-3 text-center font-semibold text-gray-700">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -305,7 +300,7 @@ export default function ProductList() {
                       selectedProducts.includes(product.id) ? 'bg-blue-50' : ''
                     }`}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-3 sm:px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedProducts.includes(product.id)}
@@ -313,20 +308,20 @@ export default function ProductList() {
                         className="cursor-pointer"
                       />
                     </td>
-                    <td className="px-4 py-3 font-semibold text-gray-800">{product.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{product.category}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 sm:px-4 py-3 font-semibold text-gray-800">{product.name}</td>
+                    <td className="px-3 sm:px-4 py-3 text-gray-600">{product.category}</td>
+                    <td className="px-3 sm:px-4 py-3">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(product.status)}`}>
                         {product.status}
                       </span>
                     </td>
                     {hasPermission('can_edit_product_prices') && (
-                      <td className="px-4 py-3 text-gray-600">R$ {product.price_daily.toFixed(2)}</td>
+                      <td className="px-3 sm:px-4 py-3 text-gray-600">R$ {product.price_daily.toFixed(2)}</td>
                     )}
                     {hasPermission('can_edit_product_quantity') && (
-                      <td className="px-4 py-3 text-gray-600">{product.quantity}</td>
+                      <td className="px-3 sm:px-4 py-3 text-gray-600">{product.quantity}</td>
                     )}
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 sm:px-4 py-3 text-center">
                       <div className="flex justify-center gap-2">
                         {hasPermission('can_edit_product_basic') ? (
                           <button

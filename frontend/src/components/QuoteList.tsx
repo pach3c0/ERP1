@@ -150,7 +150,7 @@ export default function QuoteList() {
   };
 
   return (
-    <div>
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Orçamentos</h1>
         <button
@@ -162,8 +162,8 @@ export default function QuoteList() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white p-4 rounded-lg shadow mb-4 sm:mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">Status</label>
             <select
@@ -215,7 +215,7 @@ export default function QuoteList() {
       </div>
 
       {/* Results Info */}
-      <div className="mb-4 text-gray-600">
+      <div className="mb-2 sm:mb-4 text-gray-600 text-sm">
         Total: {total} orçamento(s)
       </div>
 
@@ -229,36 +229,36 @@ export default function QuoteList() {
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full text-xs sm:text-sm min-w-[760px]">
               <thead className="bg-gray-100 border-b">
                 <tr>
-                  <th className="p-4 text-left">Número</th>
-                  <th className="p-4 text-left">Cliente</th>
-                  <th className="p-4 text-center">Itens</th>
-                  <th className="p-4 text-right">Total</th>
-                  <th className="p-4 text-center">Status</th>
-                  <th className="p-4 text-center">Validade</th>
-                  <th className="p-4 text-center">Data</th>
-                  <th className="p-4 text-center">Ações</th>
+                  <th className="px-3 sm:px-4 py-3 text-left">Número</th>
+                  <th className="px-3 sm:px-4 py-3 text-left">Cliente</th>
+                  <th className="px-3 sm:px-4 py-3 text-center">Itens</th>
+                  <th className="px-3 sm:px-4 py-3 text-right">Total</th>
+                  <th className="px-3 sm:px-4 py-3 text-center">Status</th>
+                  <th className="px-3 sm:px-4 py-3 text-center">Validade</th>
+                  <th className="px-3 sm:px-4 py-3 text-center">Data</th>
+                  <th className="px-3 sm:px-4 py-3 text-center">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {quotes.map((quote) => (
                   <tr key={quote.id} className="border-b hover:bg-gray-50">
-                    <td className="p-4 font-mono text-sm">{quote.quote_number}</td>
-                    <td className="p-4">{quote.customer_name}</td>
-                    <td className="p-4 text-center">{quote.items.length}</td>
-                    <td className="p-4 text-right font-semibold text-green-600">
+                    <td className="px-3 sm:px-4 py-3 font-mono text-[11px] sm:text-sm">{quote.quote_number}</td>
+                    <td className="px-3 sm:px-4 py-3">{quote.customer_name}</td>
+                    <td className="px-3 sm:px-4 py-3 text-center">{quote.items.length}</td>
+                    <td className="px-3 sm:px-4 py-3 text-right font-semibold text-green-600">
                       R$ {quote.total.toFixed(2)}
                     </td>
-                    <td className="p-4 text-center">{getStatusBadge(quote.status)}</td>
-                    <td className="p-4 text-center text-sm">
+                    <td className="px-3 sm:px-4 py-3 text-center">{getStatusBadge(quote.status)}</td>
+                    <td className="px-3 sm:px-4 py-3 text-center text-[11px] sm:text-sm">
                       {formatDate(quote.valid_until)}
                     </td>
-                    <td className="p-4 text-center text-sm">
+                    <td className="px-3 sm:px-4 py-3 text-center text-[11px] sm:text-sm">
                       {formatDate(quote.created_at)}
                     </td>
-                    <td className="p-4">
+                    <td className="px-3 sm:px-4 py-3">
                       <div className="flex justify-center gap-2">
                         <button
                           onClick={() => navigate(`/quotes/${quote.id}`)}

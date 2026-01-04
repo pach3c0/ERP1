@@ -165,7 +165,7 @@ export default function Home() {
       } catch (error) { console.error('Erro ao postar:', error); alert("Erro ao postar."); }
   };
 
-  const handlePostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePostChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     const cursor = e.target.selectionStart || 0;
     setCursorPosition(cursor);
@@ -194,7 +194,7 @@ export default function Home() {
     setMentionQuery('');
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (!showMentions) return;
 
     const filteredUsers = users.filter(u =>

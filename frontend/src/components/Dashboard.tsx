@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useEffect, useState } from 'react';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Users, FileText, Package, Activity } from 'lucide-react';
 import api from '../api';
 
@@ -64,18 +64,16 @@ export default function Dashboard() {
     { name: 'Pendente', value: stats.customers.pending, fill: '#f59e0b' },
   ];
 
-  const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e'];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 sm:p-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-slate-600 mt-2">Visão geral do seu ERP</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-slate-600 mt-1 sm:mt-2 text-sm sm:text-base">Visão geral do seu ERP</p>
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         {/* Card: Clientes */}
         <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
           <div className="flex items-center justify-between">
@@ -144,11 +142,11 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
         {/* Orçamentos por Status */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Orçamentos por Status</h2>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie
                 data={quotesStatusData.filter(d => d.value > 0)}
@@ -172,7 +170,7 @@ export default function Dashboard() {
         {/* Clientes por Status */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Clientes por Status</h2>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={260}>
             <BarChart data={customersStatusData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
@@ -186,7 +184,7 @@ export default function Dashboard() {
 
       {/* Top Salespeople */}
       {stats.top_salespeople && stats.top_salespeople.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Top Vendedores</h2>
             <div className="space-y-3">
@@ -228,9 +226,9 @@ export default function Dashboard() {
       )}
 
       {/* Resumo Orçamentos */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Resumo de Orçamentos</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-red-50 p-4 rounded-lg">
             <p className="text-slate-600 text-sm">Rascunho</p>
             <p className="text-2xl font-bold text-red-600">{stats.quotes.draft}</p>

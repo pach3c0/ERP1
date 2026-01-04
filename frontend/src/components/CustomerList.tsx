@@ -206,7 +206,7 @@ export default function CustomerList() {
   };
 
   return (
-    <div className="p-6 relative">
+    <div className="p-4 sm:p-6 relative">
       {/* --- MODAL DE STATUS --- */}
       {isStatusModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -320,22 +320,22 @@ export default function CustomerList() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-bold">
+          <table className="w-full text-left text-xs sm:text-sm min-w-[760px]">
+            <thead className="bg-gray-50 text-gray-500 text-[11px] sm:text-xs uppercase font-bold">
               <tr>
-                <th className="px-6 py-4 w-10">
+                <th className="px-4 sm:px-6 py-3 sm:py-4 w-10">
                   <input 
                     type="checkbox" 
                     checked={selectedCustomers.length === filteredCustomers.length && filteredCustomers.length > 0}
                     onChange={handleSelectAll}
                   />
                 </th>
-                <th className="px-6 py-4">Nome</th>
-                <th className="px-6 py-4">CPF / CNPJ</th>
-                <th className="px-6 py-4">Cidade/UF</th>
-                <th className="px-6 py-4">Vendedor</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-center">Ações</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Nome</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">CPF / CNPJ</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Cidade/UF</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Vendedor</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4">Status</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -343,14 +343,14 @@ export default function CustomerList() {
                 <tr><td colSpan={8} className="text-center py-10 text-gray-400">Carregando...</td></tr>
               ) : filteredCustomers.map(customer => (
                 <tr key={customer.id} className="hover:bg-gray-50 transition group cursor-pointer" onClick={() => navigate(`/customers/${customer.id}`)}>
-                  <td className="px-6 py-4" onClick={(e) => { e.stopPropagation(); handleSelectOne(e as any, customer.id); }}>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4" onClick={(e) => { e.stopPropagation(); handleSelectOne(e as any, customer.id); }}>
                     <input 
                       type="checkbox" 
                       checked={selectedCustomers.includes(customer.id)}
                       readOnly
                     />
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
                         {customer.person_type === 'fisica' ? <User size={16} /> : <Building2 size={16} />}
@@ -358,11 +358,11 @@ export default function CustomerList() {
                       <span className="font-medium text-gray-700">{customer.name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-gray-600 font-mono text-sm">{customer.document}</td>
-                  <td className="px-6 py-4 text-gray-600 text-sm">{customer.city}/{customer.state}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{getSalespersonName(customer.salesperson_id)}</td>
-                  <td className="px-6 py-4">{getStatusBadge(customer.status)}</td>
-                  <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-gray-600 font-mono text-[11px] sm:text-sm">{customer.document}</td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-gray-600 text-[11px] sm:text-sm">{customer.city}/{customer.state}</td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-[11px] sm:text-sm text-gray-600">{getSalespersonName(customer.salesperson_id)}</td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4">{getStatusBadge(customer.status)}</td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-center" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-2">
                       {/* BOTÃO CRM PARA TODOS */}
                       <button 
